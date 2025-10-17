@@ -131,17 +131,17 @@ class Pin(BaseModel):
         examples=["1", "A1", "VCC", "GND", "CLK"],
     )
     name: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Optional pin name (e.g., 'VCC', 'GND', 'CLK')",
         examples=["VCC", "GND", "CLK", "RESET", "DATA"],
     )
     type: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Pin type classification (e.g., 'power', 'input', 'output')",
         examples=["power", "ground", "input", "output", "bidirectional"],
     )
     direction: PinDirection | None = Field(
-        None,
+        default=None,
         description="Electrical direction and function of the pin",
         examples=["input", "output", "bidirectional", "power", "ground", "passive"],
     )
@@ -250,22 +250,22 @@ class Component(BaseModel):
         examples=[[{"number": "1", "name": "VCC"}, {"number": "2", "name": "GND"}]],
     )
     value: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Component value (e.g., '10kΩ', '100nF')",
         examples=["10kΩ", "100nF", "3.3V", "1MHz", "0.1µF"],
     )
     package: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Component package type",
         examples=["SOIC-8", "QFP-32", "0603", "DIP-14", "BGA-256"],
     )
     manufacturer: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Component manufacturer",
         examples=["Texas Instruments", "STMicroelectronics", "Analog Devices"],
     )
     part_number: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Manufacturer part number",
         examples=["LM358", "STM32F103C8T6", "AD620"],
     )
@@ -363,7 +363,7 @@ class Net(BaseModel):
         examples=[[{"component": "U1", "pin": "1"}, {"component": "R1", "pin": "1"}]],
     )
     net_type: constr(strip_whitespace=True) | None = Field(
-        None,
+        default=None,
         description="Type of net (e.g., 'power', 'signal', 'ground')",
         examples=["power", "ground", "signal", "clock", "analog"],
     )
@@ -522,7 +522,7 @@ class Netlist(BaseModel):
         ..., description="List of electrical nets (connections) between components"
     )
     metadata: dict[str, Any] | None = Field(
-        None, description="Optional additional information about the netlist"
+        default=None, description="Optional additional information about the netlist"
     )
 
     @field_validator("components")

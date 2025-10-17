@@ -13,7 +13,9 @@ class ErrorResponse(BaseModel):
     message: constr(strip_whitespace=True) = Field(
         ..., description="Human-readable error message"
     )
-    details: dict[str, Any] | None = Field(None, description="Additional error details")
+    details: dict[str, Any] | None = Field(
+        default=None, description="Additional error details"
+    )
 
 
 class HealthResponse(BaseModel):
