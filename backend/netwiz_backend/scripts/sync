@@ -1,0 +1,12 @@
+#!/bin/bash
+# Wrapper script for sync_metadata.py
+
+# Get the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKEND_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Change to backend directory
+cd "$BACKEND_DIR"
+
+# Run the Python script with all arguments
+python scripts/sync_metadata.py "$@"

@@ -1,0 +1,302 @@
+[project]
+name = "netwiz_backend"
+version = "1.0.0"
+description = "PCB Netlist Visualizer + Validator Backend API"
+authors = [
+    { name = "NetWiz Team", email = "modularizer@netwiz.com" },
+]
+maintainers = [
+    { name = "NetWiz Team", email = "modularizer@netwiz.com" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "FastAPI==0.103.2",
+    "uvicorn[standard]==0.23.2",
+    "Flask==2.3.3",
+    "Flask-CORS==4.0.0",
+    "Flask-PyMongo==2.3.0",
+    "Flask-RESTful==0.3.10",
+    "Flask-RESTX==1.1.0",
+    "PyMongo==4.5.0",
+    "Motor==3.3.2",
+    "pydantic==2.4.2",
+    "pydantic[email]==2.4.2",
+    "pydantic-settings==2.0.3",
+    "jsonschema==4.19.1",
+    "marshmallow==3.20.1",
+    "python-dotenv==1.0.0",
+    "python-magic==0.4.27",
+    "requests==2.31.0",
+    "click==8.1.7",
+]
+
+[project.license]
+text = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/modularizer/netwiz"
+Repository = "https://github.com/modularizer/netwiz"
+Issues = "https://github.com/modularizer/netwiz/issues"
+Documentation = "https://github.com/modularizer/netwiz#readme"
+Changelog = "https://github.com/modularizer/netwiz/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.2",
+    "pytest-flask>=1.2.0",
+    "pytest-mock>=3.11.1",
+    "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.3.1",
+    "selenium>=4.15.0",
+    "webdriver-manager>=4.0.1",
+    "responses>=0.23.3",
+    "black>=23.9.1",
+    "flake8>=6.1.0",
+    "isort>=5.12.0",
+    "mypy>=1.5.1",
+    "pre-commit>=3.4.0",
+    "sphinx>=7.2.6",
+    "sphinx-rtd-theme>=1.3.0",
+    "tomli-w>=1.0.0",
+    "flask>=2.3.3",
+    "flask-cors>=4.0.0",
+    "flask-pymongo>=2.3.0",
+    "flask-restful>=0.3.10",
+    "flask-restx>=1.1.0",
+]
+
+[project.scripts]
+netwiz-backend = "netwiz_backend.main:main"
+netwiz-dev = "netwiz_backend.main:main"
+netwiz-generate-openapi = "netwiz_backend.scripts.generate_openapi:main"
+netwiz-sync-metadata = "netwiz_backend.scripts.sync_metadata:main"
+netwiz-check-metadata = "netwiz_backend.scripts.check_metadata:main"
+netwiz-health = "netwiz_backend.scripts.health_check:main"
+netwiz-test-api = "netwiz_backend.scripts.test_api:main"
+
+[build-system]
+requires = [
+    "setuptools>=61.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [
+    ".",
+]
+include = [
+    "netwiz_backend*",
+]
+exclude = [
+    "tests*",
+    "venv*",
+    "*.egg-info*",
+]
+
+[tool.setuptools.package-data]
+"*" = [
+    "*.py",
+    "*.pyi",
+    "*.toml",
+    "*.txt",
+    "*.md",
+]
+
+[tool.black]
+line-length = 88
+target-version = [
+    "py38",
+    "py39",
+    "py310",
+    "py311",
+    "py312",
+]
+include = "\\.pyi?$"
+extend-exclude = "/(\n  # directories\n  \\.eggs\n  | \\.git\n  | \\.hg\n  | \\.mypy_cache\n  | \\.tox\n  | \\.venv\n  | venv\n  | _build\n  | buck-out\n  | build\n  | dist\n)/\n"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = [
+    "netwiz",
+    "backend",
+]
+known_third_party = [
+    "fastapi",
+    "pydantic",
+    "uvicorn",
+    "pymongo",
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = [
+    "pymongo.*",
+    "motor.*",
+    "selenium.*",
+    "webdriver_manager.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+python_classes = [
+    "Test*",
+]
+python_functions = [
+    "test_*",
+]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--cov=.",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "e2e: End-to-end tests",
+    "slow: Slow running tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.coverage.run]
+source = [
+    ".",
+]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/alembic/*",
+    "setup.py",
+    "conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+line-length = 88
+indent-width = 4
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "ARG001",
+    "SIM",
+    "TCH",
+    "TID",
+    "Q",
+    "RUF",
+]
+ignore = [
+    "E501",
+    "B008",
+    "C901",
+    "ARG002",
+    "ARG001",
+    "ARG003",
+    "ARG004",
+    "ARG005",
+]
+fixable = [
+    "ALL",
+]
+unfixable = []
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "netwiz_backend",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"

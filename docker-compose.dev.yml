@@ -3,7 +3,7 @@ version: '3.8'
 services:
   mongodb:
     image: mongo:7.0
-    container_name: netwiz-mongodb
+    container_name: netwiz-mongodb-dev
     restart: unless-stopped
     ports:
       - "27017:27017"
@@ -11,42 +11,34 @@ services:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_dev_data:/data/db
     networks:
-      - netwiz-network
+      - netwiz-dev-network
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: netwiz-backend
+    container_name: netwiz-backend-dev
     restart: unless-stopped
     ports:
       - "5000:5000"
+    env_file:
+      - backend/.env
     environment:
-      # Environment Configuration
-      - ENVIRONMENT=production
-      - DEBUG=false
-      - HOST=0.0.0.0
-      - PORT=5000
-      - RELOAD=false
-      - LOG_LEVEL=INFO
-
-      # Database Configuration
+      # Override specific variables for development
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - RELOAD=true
+      - LOG_LEVEL=DEBUG
       - MONGODB_URI=mongodb://admin:password@mongodb:27017/netwiz?authSource=admin
-      - MONGODB_DATABASE=netwiz
-
-      # CORS Configuration
-      - CORS_ORIGINS=http://frontend:3000,http://localhost:3000
-
-      # API Configuration
-      - API_PREFIX=/api
-      - DOCS_URL=/docs
-      - REDOC_URL=/redoc
     depends_on:
       - mongodb
     networks:
-      - netwiz-network
+      - netwiz-dev-network
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -58,18 +50,27 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: netwiz-frontend
+    container_name: netwiz-frontend-dev
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - frontend/.env
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:5000
     depends_on:
       - backend
     networks:
-      - netwiz-network
+      - netwiz-dev-network
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
-  mongodb_data:
+  mongodb_dev_data:
 
 networks:
-  netwiz-network:
+  netwiz-dev-network:
     driver: bridge
