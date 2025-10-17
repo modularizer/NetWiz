@@ -42,6 +42,7 @@ from .models import (
     NetConnection,
     Netlist,
     Pin,
+    PinDirection,
 )
 
 # Import validation
@@ -59,6 +60,7 @@ __all__ = [
     "NetConnection",
     "Netlist",
     "Pin",
+    "PinDirection",
     # Validation
     "ValidationError",
     "ValidationResult",

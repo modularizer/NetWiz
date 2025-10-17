@@ -187,12 +187,12 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     # Rule 1: Check for blank component names
     applied_rules.append("blank_component_names")
     for component in netlist.components:
-        if not component.id or not component.id.strip():
+        if not component.name or not component.name.strip():
             errors.append(
                 ValidationError(
                     error_type="blank_component_name",
                     message="Component names cannot be blank",
-                    component_id=component.id,
+                    component_id=component.name,
                     severity="error",
                 )
             )
@@ -200,36 +200,36 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     # Rule 2: Check for blank net names
     applied_rules.append("blank_net_names")
     for net in netlist.nets:
-        if not net.id or not net.id.strip():
+        if not net.name or not net.name.strip():
             errors.append(
                 ValidationError(
                     error_type="blank_net_name",
                     message="Net names cannot be blank",
-                    net_id=net.id,
+                    net_id=net.name,
                     severity="error",
                 )
             )
 
     # Rule 3: Check for unique component IDs
-    applied_rules.append("unique_component_ids")
-    component_ids = [comp.id for comp in netlist.components]
+    applied_rules.append("unique_component_names")
+    component_ids = [comp.name for comp in netlist.components]
     if len(component_ids) != len(set(component_ids)):
         errors.append(
             ValidationError(
-                error_type="duplicate_component_id",
-                message="Component IDs must be unique",
+                error_type="duplicate_component_name",
+                message="Component names must be unique",
                 severity="error",
             )
         )
 
     # Rule 4: Check for unique net IDs
-    applied_rules.append("unique_net_ids")
-    net_ids = [net.id for net in netlist.nets]
+    applied_rules.append("unique_net_names")
+    net_ids = [net.name for net in netlist.nets]
     if len(net_ids) != len(set(net_ids)):
         errors.append(
             ValidationError(
-                error_type="duplicate_net_id",
-                message="Net IDs must be unique",
+                error_type="duplicate_net_name",
+                message="Net names must be unique",
                 severity="error",
             )
         )
@@ -237,7 +237,7 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     # Rule 5: Check GND connectivity
     applied_rules.append("gnd_connectivity")
     gnd_nets = [
-        net for net in netlist.nets if net.id.upper() in ["GND", "GROUND", "VSS"]
+        net for net in netlist.nets if net.name.upper() in ["GND", "GROUND", "VSS"]
     ]
     if gnd_nets:
         gnd_net = gnd_nets[0]
@@ -246,7 +246,7 @@ def validate_netlist_internal(netlist) -> ValidationResult:
                 ValidationError(
                     error_type="insufficient_gnd_connections",
                     message="GND net should be connected to multiple components",
-                    net_id=gnd_net.id,
+                    net_id=gnd_net.name,
                     severity="warning",
                 )
             )
@@ -259,7 +259,7 @@ def validate_netlist_internal(netlist) -> ValidationResult:
                 ValidationError(
                     error_type="orphaned_net",
                     message="Net must have at least one connection",
-                    net_id=net.id,
+                    net_id=net.name,
                     severity="error",
                 )
             )
@@ -272,12 +272,12 @@ def validate_netlist_internal(netlist) -> ValidationResult:
             connected_components.add(connection.component)
 
     for component in netlist.components:
-        if component.id not in connected_components:
+        if component.name not in connected_components:
             warnings.append(
                 ValidationError(
                     error_type="unconnected_component",
                     message="Component is not connected to any net",
-                    component_id=component.id,
+                    component_id=component.name,
                     severity="warning",
                 )
             )

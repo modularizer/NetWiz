@@ -20,18 +20,20 @@ Each component represents an electronic part (resistor, capacitor, IC, etc.):
 
 ```json
 {
-  "id": "U1",
+  "name": "U1",
   "type": "IC",
   "pins": [
     {
       "number": "1",
       "name": "VCC",
-      "type": "power"
+      "type": "power",
+      "direction": "power"
     },
     {
       "number": "2",
       "name": "GND",
-      "type": "ground"
+      "type": "ground",
+      "direction": "ground"
     }
   ],
   "value": "3.3V",
@@ -43,7 +45,7 @@ Each component represents an electronic part (resistor, capacitor, IC, etc.):
 
 ### Component Fields
 
-- **`id`** (required): Unique identifier (e.g., "U1", "R5", "C10")
+- **`name`** (required): Unique identifier (e.g., "U1", "R5", "C10")
 - **`type`** (required): Component type - one of: `IC`, `RESISTOR`, `CAPACITOR`, `INDUCTOR`, `DIODE`, `TRANSISTOR`, `CONNECTOR`, `OTHER`
 - **`pins`** (required): Array of pin objects (minimum 1)
 - **`value`** (optional): Component value (e.g., "10kΩ", "100nF", "3.3V")
@@ -56,6 +58,7 @@ Each component represents an electronic part (resistor, capacitor, IC, etc.):
 - **`number`** (required): Pin number or identifier (e.g., "1", "A1", "VCC")
 - **`name`** (optional): Pin name (e.g., "VCC", "GND", "CLK")
 - **`type`** (optional): Pin type (e.g., "power", "input", "output")
+- **`direction`** (optional): Electrical direction - one of: `input`, `output`, `bidirectional`, `power`, `ground`, `passive`
 
 ## 🔌 Nets
 
@@ -63,7 +66,7 @@ Each net represents an electrical connection between component pins:
 
 ```json
 {
-  "id": "VCC",
+  "name": "VCC",
   "connections": [
     {
       "component": "U1",
@@ -80,7 +83,7 @@ Each net represents an electrical connection between component pins:
 
 ### Net Fields
 
-- **`id`** (required): Unique net identifier (e.g., "VCC", "GND", "CLK")
+- **`name`** (required): Unique net identifier (e.g., "VCC", "GND", "CLK")
 - **`connections`** (required): Array of connections (minimum 1)
 - **`net_type`** (optional): Net type (e.g., "power", "ground", "signal")
 
@@ -112,12 +115,12 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
 {
   "components": [
     {
-      "id": "U1",
+      "name": "U1",
       "type": "IC",
       "pins": [
-        {"number": "1", "name": "VCC", "type": "power"},
-        {"number": "2", "name": "GND", "type": "ground"},
-        {"number": "3", "name": "CLK", "type": "input"}
+        {"number": "1", "name": "VCC", "type": "power", "direction": "power"},
+        {"number": "2", "name": "GND", "type": "ground", "direction": "ground"},
+        {"number": "3", "name": "CLK", "type": "input", "direction": "input"}
       ],
       "value": "3.3V",
       "package": "QFP-32",
@@ -125,7 +128,7 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
       "part_number": "STM32F103C8T6"
     },
     {
-      "id": "R1",
+      "name": "R1",
       "type": "RESISTOR",
       "pins": [
         {"number": "1"},
@@ -137,7 +140,7 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
   ],
   "nets": [
     {
-      "id": "VCC",
+      "name": "VCC",
       "connections": [
         {"component": "U1", "pin": "1"},
         {"component": "R1", "pin": "1"}
@@ -145,7 +148,7 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
       "net_type": "power"
     },
     {
-      "id": "GND",
+      "name": "GND",
       "connections": [
         {"component": "U1", "pin": "2"},
         {"component": "R1", "pin": "2"}
@@ -165,11 +168,24 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
 
 The API validates netlists against these rules:
 
-1. **Non-empty IDs**: Component and net IDs cannot be blank
-2. **Unique IDs**: All component IDs must be unique, all net IDs must be unique
+1. **Non-empty Names**: Component and net names cannot be blank
+2. **Unique Names**: All component names must be unique, all net names must be unique
 3. **Valid Connections**: All net connections must reference existing components and pins
 4. **Minimum Requirements**: At least one component and one net required
 5. **Connected Components**: Components should be connected to nets (warnings for unconnected)
+
+## 🎯 Pin Directions
+
+The `direction` field categorizes pins by their electrical function:
+
+| Direction | Description | Example Usage |
+|-----------|-------------|---------------|
+| `input` | Pin receives signals from external sources | Clock inputs, data inputs, control signals |
+| `output` | Pin drives signals to external loads | Data outputs, control outputs, status signals |
+| `bidirectional` | Pin can both receive and drive signals | Data buses, I/O pins |
+| `power` | Pin provides power supply voltage | VCC, VDD, +3.3V, +5V |
+| `ground` | Pin provides ground reference | GND, VSS, 0V reference |
+| `passive` | Pin for passive components | Resistor terminals, capacitor terminals |
 
 ## 🚀 Component Types
 
@@ -187,11 +203,11 @@ The API validates netlists against these rules:
 ## 📝 Field Constraints
 
 ### Required Fields
-- `components[].id` - Must be non-empty string
+- `components[].name` - Must be non-empty string
 - `components[].type` - Must be valid ComponentType
 - `components[].pins` - Must have at least 1 pin
 - `components[].pins[].number` - Must be non-empty string
-- `nets[].id` - Must be non-empty string
+- `nets[].name` - Must be non-empty string
 - `nets[].connections` - Must have at least 1 connection
 - `nets[].connections[].component` - Must be non-empty string
 - `nets[].connections[].pin` - Must be non-empty string
@@ -206,7 +222,7 @@ The API validates netlists against these rules:
 ### Power Distribution
 ```json
 {
-  "id": "VCC",
+  "name": "VCC",
   "connections": [
     {"component": "U1", "pin": "1"},
     {"component": "U2", "pin": "1"},
@@ -219,7 +235,7 @@ The API validates netlists against these rules:
 ### Ground Plane
 ```json
 {
-  "id": "GND",
+  "name": "GND",
   "connections": [
     {"component": "U1", "pin": "2"},
     {"component": "U2", "pin": "2"},
@@ -247,12 +263,12 @@ The API validates netlists against these rules:
 1. **Missing pin numbers**: Always include pin numbers in connections
 2. **Inconsistent naming**: Use consistent naming conventions for components and nets
 3. **Orphaned components**: Make sure all components are connected to nets
-4. **Duplicate IDs**: Ensure all component and net IDs are unique
+4. **Duplicate Names**: Ensure all component and net names are unique
 5. **Empty connections**: Nets must have at least one connection
 
 ## 🎯 Best Practices
 
-1. **Use descriptive IDs**: "U1", "R5", "C10" are better than generic names
+1. **Use descriptive names**: "U1", "R5", "C10" are better than generic names
 2. **Include pin names**: Add names for important pins (VCC, GND, CLK)
 3. **Group related nets**: Use consistent naming for power, ground, and signal nets
 4. **Add metadata**: Include designer, version, and description information

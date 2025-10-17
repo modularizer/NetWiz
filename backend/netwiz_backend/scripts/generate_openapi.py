@@ -41,7 +41,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                     "value": {
                         "components": [
                             {
-                                "id": "U1",
+                                "name": "U1",
                                 "type": "IC",
                                 "pins": [
                                     {"number": "1", "name": "VCC", "type": "power"},
@@ -54,7 +54,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "part_number": "STM32F103C8T6",
                             },
                             {
-                                "id": "R1",
+                                "name": "R1",
                                 "type": "RESISTOR",
                                 "pins": [{"number": "1"}, {"number": "2"}],
                                 "value": "10kΩ",
@@ -63,7 +63,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         ],
                         "nets": [
                             {
-                                "id": "VCC",
+                                "name": "VCC",
                                 "connections": [
                                     {"component": "U1", "pin": "1"},
                                     {"component": "R1", "pin": "1"},
@@ -71,7 +71,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "net_type": "power",
                             },
                             {
-                                "id": "GND",
+                                "name": "GND",
                                 "connections": [
                                     {"component": "U1", "pin": "2"},
                                     {"component": "R1", "pin": "2"},
@@ -92,7 +92,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                     "value": {
                         "components": [
                             {
-                                "id": "U1",
+                                "name": "U1",
                                 "type": "IC",
                                 "pins": [
                                     {"number": "1", "name": "VIN", "type": "input"},
@@ -105,7 +105,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "part_number": "LM7805",
                             },
                             {
-                                "id": "C1",
+                                "name": "C1",
                                 "type": "CAPACITOR",
                                 "pins": [{"number": "1"}, {"number": "2"}],
                                 "value": "100µF",
@@ -114,7 +114,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         ],
                         "nets": [
                             {
-                                "id": "VIN",
+                                "name": "VIN",
                                 "connections": [
                                     {"component": "U1", "pin": "1"},
                                     {"component": "C1", "pin": "1"},
@@ -122,12 +122,12 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "net_type": "power",
                             },
                             {
-                                "id": "VOUT",
+                                "name": "VOUT",
                                 "connections": [{"component": "U1", "pin": "2"}],
                                 "net_type": "power",
                             },
                             {
-                                "id": "GND",
+                                "name": "GND",
                                 "connections": [
                                     {"component": "U1", "pin": "3"},
                                     {"component": "C1", "pin": "2"},
@@ -148,7 +148,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                     "value": {
                         "components": [
                             {
-                                "id": "U1",
+                                "name": "U1",
                                 "type": "IC",
                                 "pins": [
                                     {"number": "1", "name": "VCC", "type": "power"},
@@ -161,7 +161,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "part_number": "STM32F103C8T6",
                             },
                             {
-                                "id": "R1",
+                                "name": "R1",
                                 "type": "RESISTOR",
                                 "pins": [{"number": "1"}, {"number": "2"}],
                                 "value": "10kΩ",
@@ -170,7 +170,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         ],
                         "nets": [
                             {
-                                "id": "VCC",
+                                "name": "VCC",
                                 "connections": [
                                     {"component": "U1", "pin": "1"},
                                     {"component": "R1", "pin": "1"},
@@ -178,7 +178,7 @@ def enhance_openapi_schema(schema: dict) -> dict:
                                 "net_type": "power",
                             },
                             {
-                                "id": "GND",
+                                "name": "GND",
                                 "connections": [
                                     {"component": "U1", "pin": "2"},
                                     {"component": "R1", "pin": "2"},
@@ -209,8 +209,8 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         "validation_rules_applied": [
                             "blank_component_names",
                             "blank_net_names",
-                            "unique_component_ids",
-                            "unique_net_ids",
+                            "unique_component_names",
+                            "unique_net_names",
                             "gnd_connectivity",
                             "orphaned_nets",
                             "unconnected_components",
@@ -224,8 +224,8 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         "is_valid": False,
                         "errors": [
                             {
-                                "error_type": "duplicate_component_id",
-                                "message": "Component IDs must be unique",
+                                "error_type": "duplicate_component_name",
+                                "message": "Component names must be unique",
                                 "severity": "error",
                             }
                         ],
@@ -241,8 +241,8 @@ def enhance_openapi_schema(schema: dict) -> dict:
                         "validation_rules_applied": [
                             "blank_component_names",
                             "blank_net_names",
-                            "unique_component_ids",
-                            "unique_net_ids",
+                            "unique_component_names",
+                            "unique_net_names",
                         ],
                     },
                 },

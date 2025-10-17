@@ -19,20 +19,20 @@ The models follow a hierarchical structure:
 
 Example:
     ```python
-    from netwiz_backend.netlist.core.models import Netlist, Component, Pin, Net, NetConnection, ComponentType
+    from netwiz_backend.netlist.core.models import Netlist, Component, Pin, Net, NetConnection, ComponentType, PinDirection
 
     # Create a simple circuit
     netlist = Netlist(
         components=[
             Component(
-                id="U1",
+                name="U1",
                 type=ComponentType.IC,
-                pins=[Pin(number="1", name="VCC"), Pin(number="2", name="GND")]
+                pins=[Pin(number="1", name="VCC", direction=PinDirection.POWER), Pin(number="2", name="GND", direction=PinDirection.GROUND)]
             )
         ],
         nets=[
             Net(
-                id="VCC",
+                name="VCC",
                 connections=[NetConnection(component="U1", pin="1")]
             )
         ]
@@ -44,6 +44,31 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field, conlist, constr, field_validator
+
+
+class PinDirection(str, Enum):
+    """
+    Enumeration of pin electrical directions and functions.
+
+    This enum defines the electrical characteristics and signal flow direction
+    for component pins. Each direction represents a different electrical
+    function and usage pattern.
+
+    Attributes:
+        INPUT: Pin receives signals from external sources
+        OUTPUT: Pin drives signals to external loads
+        BIDIRECTIONAL: Pin can both receive and drive signals
+        POWER: Pin provides power supply voltage
+        GROUND: Pin provides ground reference
+        PASSIVE: Pin for passive components (resistors, capacitors, etc.)
+    """
+
+    INPUT = "input"
+    OUTPUT = "output"
+    BIDIRECTIONAL = "bidirectional"
+    POWER = "power"
+    GROUND = "ground"
+    PASSIVE = "passive"
 
 
 class ComponentType(str, Enum):
@@ -86,11 +111,16 @@ class Pin(BaseModel):
     model_config = {
         "json_schema_extra": {
             "examples": [
-                {"number": "1", "name": "VCC", "type": "power"},
-                {"number": "2", "name": "GND", "type": "ground"},
-                {"number": "3", "name": "CLK", "type": "input"},
-                {"number": "4", "name": "DATA", "type": "output"},
-                {"number": "5"},
+                {"number": "1", "name": "VCC", "type": "power", "direction": "power"},
+                {"number": "2", "name": "GND", "type": "ground", "direction": "ground"},
+                {"number": "3", "name": "CLK", "type": "input", "direction": "input"},
+                {
+                    "number": "4",
+                    "name": "DATA",
+                    "type": "output",
+                    "direction": "output",
+                },
+                {"number": "5", "direction": "passive"},
             ]
         }
     }
@@ -109,6 +139,11 @@ class Pin(BaseModel):
         None,
         description="Pin type classification (e.g., 'power', 'input', 'output')",
         examples=["power", "ground", "input", "output", "bidirectional"],
+    )
+    direction: PinDirection | None = Field(
+        None,
+        description="Electrical direction and function of the pin",
+        examples=["input", "output", "bidirectional", "power", "ground", "passive"],
     )
 
 
@@ -138,12 +173,12 @@ class Component(BaseModel):
         ```python
         # Microcontroller
         mcu = Component(
-            id="U1",
+            name="U1",
             type=ComponentType.IC,
             pins=[
-                Pin(number="1", name="VCC", type="power"),
-                Pin(number="2", name="GND", type="power"),
-                Pin(number="3", name="CLK", type="input")
+                Pin(number="1", name="VCC", type="power", direction=PinDirection.POWER),
+                Pin(number="2", name="GND", type="power", direction=PinDirection.GROUND),
+                Pin(number="3", name="CLK", type="input", direction=PinDirection.INPUT)
             ],
             value="3.3V",
             package="QFP-32",
@@ -153,9 +188,9 @@ class Component(BaseModel):
 
         # Resistor
         resistor = Component(
-            id="R1",
+            name="R1",
             type=ComponentType.RESISTOR,
-            pins=[Pin(number="1"), Pin(number="2")],
+            pins=[Pin(number="1", direction=PinDirection.PASSIVE), Pin(number="2", direction=PinDirection.PASSIVE)],
             value="10kΩ",
         )
         ```
@@ -165,12 +200,27 @@ class Component(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "id": "U1",
+                    "name": "U1",
                     "type": "IC",
                     "pins": [
-                        {"number": "1", "name": "VCC", "type": "power"},
-                        {"number": "2", "name": "GND", "type": "ground"},
-                        {"number": "3", "name": "CLK", "type": "input"},
+                        {
+                            "number": "1",
+                            "name": "VCC",
+                            "type": "power",
+                            "direction": "power",
+                        },
+                        {
+                            "number": "2",
+                            "name": "GND",
+                            "type": "ground",
+                            "direction": "ground",
+                        },
+                        {
+                            "number": "3",
+                            "name": "CLK",
+                            "type": "input",
+                            "direction": "input",
+                        },
                     ],
                     "value": "3.3V",
                     "package": "QFP-32",
@@ -178,7 +228,7 @@ class Component(BaseModel):
                     "part_number": "STM32F103C8T6",
                 },
                 {
-                    "id": "R1",
+                    "name": "R1",
                     "type": "RESISTOR",
                     "pins": [{"number": "1"}, {"number": "2"}],
                     "value": "10kΩ",
@@ -188,9 +238,9 @@ class Component(BaseModel):
         }
     }
 
-    id: constr(min_length=1, strip_whitespace=True) = Field(
+    name: constr(min_length=1, strip_whitespace=True) = Field(
         ...,
-        description="Unique component identifier",
+        description="Unique component name",
         examples=["U1", "R5", "C10", "IC1", "CONN1"],
     )
     type: ComponentType = Field(..., description="Type of electronic component")
@@ -282,7 +332,7 @@ class Net(BaseModel):
         ```python
         # Power supply net
         vcc_net = Net(
-            id="VCC",
+            name="VCC",
             connections=[
                 NetConnection(component="U1", pin="1"),
                 NetConnection(component="U2", pin="1")
@@ -292,7 +342,7 @@ class Net(BaseModel):
 
         # Signal net
         clock_net = Net(
-            id="CLK",
+            name="CLK",
             connections=[
                 NetConnection(component="U1", pin="3"),
                 NetConnection(component="U2", pin="2")
@@ -302,9 +352,9 @@ class Net(BaseModel):
         ```
     """
 
-    id: constr(min_length=1, strip_whitespace=True) = Field(
+    name: constr(min_length=1, strip_whitespace=True) = Field(
         ...,
-        description="Unique net identifier",
+        description="Unique net name",
         examples=["VCC", "GND", "CLK", "DATA", "RESET", "SIGNAL"],
     )
     connections: conlist(NetConnection, min_length=1) = Field(
@@ -335,12 +385,27 @@ class Netlist(BaseModel):
                     "value": {
                         "components": [
                             {
-                                "id": "U1",
+                                "name": "U1",
                                 "type": "IC",
                                 "pins": [
-                                    {"number": "1", "name": "VCC", "type": "power"},
-                                    {"number": "2", "name": "GND", "type": "ground"},
-                                    {"number": "3", "name": "CLK", "type": "input"},
+                                    {
+                                        "number": "1",
+                                        "name": "VCC",
+                                        "type": "power",
+                                        "direction": "power",
+                                    },
+                                    {
+                                        "number": "2",
+                                        "name": "GND",
+                                        "type": "ground",
+                                        "direction": "ground",
+                                    },
+                                    {
+                                        "number": "3",
+                                        "name": "CLK",
+                                        "type": "input",
+                                        "direction": "input",
+                                    },
                                 ],
                                 "value": "3.3V",
                                 "package": "QFP-32",
@@ -348,7 +413,7 @@ class Netlist(BaseModel):
                                 "part_number": "STM32F103C8T6",
                             },
                             {
-                                "id": "R1",
+                                "name": "R1",
                                 "type": "RESISTOR",
                                 "pins": [{"number": "1"}, {"number": "2"}],
                                 "value": "10kΩ",
@@ -357,7 +422,7 @@ class Netlist(BaseModel):
                         ],
                         "nets": [
                             {
-                                "id": "VCC",
+                                "name": "VCC",
                                 "connections": [
                                     {"component": "U1", "pin": "1"},
                                     {"component": "R1", "pin": "1"},
@@ -365,7 +430,7 @@ class Netlist(BaseModel):
                                 "net_type": "power",
                             },
                             {
-                                "id": "GND",
+                                "name": "GND",
                                 "connections": [
                                     {"component": "U1", "pin": "2"},
                                     {"component": "R1", "pin": "2"},
@@ -386,12 +451,27 @@ class Netlist(BaseModel):
                     "value": {
                         "components": [
                             {
-                                "id": "U1",
+                                "name": "U1",
                                 "type": "IC",
                                 "pins": [
-                                    {"number": "1", "name": "VIN", "type": "input"},
-                                    {"number": "2", "name": "VOUT", "type": "output"},
-                                    {"number": "3", "name": "GND", "type": "ground"},
+                                    {
+                                        "number": "1",
+                                        "name": "VIN",
+                                        "type": "input",
+                                        "direction": "input",
+                                    },
+                                    {
+                                        "number": "2",
+                                        "name": "VOUT",
+                                        "type": "output",
+                                        "direction": "output",
+                                    },
+                                    {
+                                        "number": "3",
+                                        "name": "GND",
+                                        "type": "ground",
+                                        "direction": "ground",
+                                    },
                                 ],
                                 "value": "5V",
                                 "package": "TO-220",
@@ -399,7 +479,7 @@ class Netlist(BaseModel):
                                 "part_number": "LM7805",
                             },
                             {
-                                "id": "C1",
+                                "name": "C1",
                                 "type": "CAPACITOR",
                                 "pins": [{"number": "1"}, {"number": "2"}],
                                 "value": "100µF",
@@ -408,7 +488,7 @@ class Netlist(BaseModel):
                         ],
                         "nets": [
                             {
-                                "id": "VIN",
+                                "name": "VIN",
                                 "connections": [
                                     {"component": "U1", "pin": "1"},
                                     {"component": "C1", "pin": "1"},
@@ -416,12 +496,12 @@ class Netlist(BaseModel):
                                 "net_type": "power",
                             },
                             {
-                                "id": "VOUT",
+                                "name": "VOUT",
                                 "connections": [{"component": "U1", "pin": "2"}],
                                 "net_type": "power",
                             },
                             {
-                                "id": "GND",
+                                "name": "GND",
                                 "connections": [
                                     {"component": "U1", "pin": "3"},
                                     {"component": "C1", "pin": "2"},
@@ -447,16 +527,16 @@ class Netlist(BaseModel):
 
     @field_validator("components")
     @classmethod
-    def validate_unique_component_ids(cls, v):
-        ids = [comp.id for comp in v]
-        if len(ids) != len(set(ids)):
-            raise ValueError("Component IDs must be unique")
+    def validate_unique_component_names(cls, v):
+        names = [comp.name for comp in v]
+        if len(names) != len(set(names)):
+            raise ValueError("Component names must be unique")
         return v
 
     @field_validator("nets")
     @classmethod
-    def validate_unique_net_ids(cls, v):
-        ids = [net.id for net in v]
-        if len(ids) != len(set(ids)):
-            raise ValueError("Net IDs must be unique")
+    def validate_unique_net_names(cls, v):
+        names = [net.name for net in v]
+        if len(names) != len(set(names)):
+            raise ValueError("Net names must be unique")
         return v
