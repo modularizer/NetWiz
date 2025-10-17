@@ -1,0 +1,25 @@
+# Web Framework
+FastAPI==0.103.2
+uvicorn[standard]==0.23.2
+Flask==2.3.3
+Flask-CORS==4.0.0
+Flask-PyMongo==2.3.0
+Flask-RESTful==0.3.10
+Flask-RESTX==1.1.0
+
+# Database
+PyMongo==4.5.0
+Motor==3.3.2
+
+# Data Processing & Validation
+pydantic==2.4.2
+pydantic[email]==2.4.2
+pydantic-settings==2.0.3
+jsonschema==4.19.1
+marshmallow==3.20.1
+
+# Utilities
+python-dotenv==1.0.0
+python-magic==0.4.27
+requests==2.31.0
+click==8.1.7
