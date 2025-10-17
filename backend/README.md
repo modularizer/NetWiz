@@ -9,13 +9,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ### Source Code Overview
-- `backend/netwiz_backend/netlist` - Core functionality, business logic of the server
+- `backend/netwiz_backend/netlist/core` - This is where we actually do our work, defining and enforcing the netlist schema
+- `backend/netwiz_backend/netlist` - Exposes the core business logic as routes on our server
 - `backend/netwiz_backend` - Python package with generic tools for hosting the FastAPI server, connecting to mongodb, generating openapi spec etc
 - `backend/scripts` - one-off scripts for development workflows
 - `backend/tests` - our tests
 - `backend` - general project structure boilerplate for install and setup
 
-**NOTE:** for info about the actual business logic, see `NetWiz/backend/netwiz_backend/netlist/README.md`
+**NOTE:** for info about the actual business logic, see `NetWiz/backend/netwiz_backend/netlist/core/README.md`
 
 
 # Backend Developer Guide

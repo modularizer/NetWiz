@@ -1,321 +1,259 @@
-# NetWiz Core Netlist Module
+# Netlist JSON Structure
 
-> **Core data models and validation logic for PCB netlist representation**
+This document explains the structure of a netlist JSON file used by the NetWiz API. A netlist represents an electronic circuit as a collection of components and their electrical connections.
 
-This directory contains the fundamental building blocks of the NetWiz system - the core data models that represent electronic circuits and the validation logic that ensures circuit integrity.
+## 📋 Basic Structure
 
-## 📁 Directory Structure
+A netlist JSON has this top-level structure:
 
-```
-core/
-├── __init__.py          # Package initialization
-├── models.py            # Core data models (Netlist, Component, Pin, Net, etc.)
-├── validation.py        # Validation logic and rules
-└── README.md           # This file
-```
-
-## 🏗️ Architecture Overview
-
-The core module follows a hierarchical data model that mirrors the structure of electronic circuits:
-
-```
-Netlist (Top-level container)
-├── Components (Electronic parts)
-│   └── Pins (Connection points)
-└── Nets (Electrical connections)
-    └── NetConnections (Component-to-net links)
+```json
+{
+  "components": [...],
+  "nets": [...],
+  "metadata": {...}
+}
 ```
 
-## 📋 Core Models (`models.py`)
+## 🔧 Components
 
-### ComponentType Enum
-Defines standard electronic component categories:
-- `IC` - Integrated circuits
-- `RESISTOR` - Passive resistive components
-- `CAPACITOR` - Passive capacitive components
-- `INDUCTOR` - Passive inductive components
-- `DIODE` - Semiconductor diodes
-- `TRANSISTOR` - Semiconductor transistors
-- `CONNECTOR` - Mechanical connectors
-- `OTHER` - Miscellaneous components
+Each component represents an electronic part (resistor, capacitor, IC, etc.):
 
-### Pin Model
-Represents a connection point on a component:
-```python
-Pin(
-    number="1",           # Required: Unique pin identifier
-    name="VCC",           # Optional: Human-readable name
-    type="power"          # Optional: Pin type classification
-)
-```
-
-### Component Model
-Represents an electronic component:
-```python
-Component(
-    id="U1",              # Required: Unique component ID
-    type=ComponentType.IC, # Required: Component type
-    pins=[...],           # Required: List of pins (min 1)
-    value="3.3V",        # Optional: Component value
-    package="QFP-32",     # Optional: Physical package
-    manufacturer="ST",   # Optional: Manufacturer
-    part_number="STM32"   # Optional: Part number
-)
-```
-
-### NetConnection Model
-Links a component pin to a net:
-```python
-NetConnection(
-    component="U1",       # Required: Component ID
-    pin="1"               # Required: Pin number
-)
-```
-
-### Net Model
-Represents an electrical connection:
-```python
-Net(
-    id="VCC",             # Required: Unique net identifier
-    connections=[...],    # Required: List of connections (min 1)
-    net_type="power"     # Optional: Net classification
-)
-```
-
-### Netlist Model
-Top-level container for the complete circuit:
-```python
-Netlist(
-    components=[...],    # Required: List of components (min 1)
-    nets=[...],          # Required: List of nets (min 1)
-    metadata={...}       # Optional: Additional information
-)
-```
-
-## ✅ Validation System (`validation.py`)
-
-### ValidationError Model
-Captures detailed error information:
-```python
-ValidationError(
-    error_type="duplicate_component_id",
-    message="Component IDs must be unique",
-    component_id="U1",    # Optional: Specific component
-    net_id=None,          # Optional: Specific net
-    severity="error"      # "error" or "warning"
-)
-```
-
-### ValidationResult Model
-Comprehensive validation results:
-```python
-ValidationResult(
-    is_valid=False,       # True if no errors found
-    errors=[...],         # List of errors
-    warnings=[...],       # List of warnings
-    validation_timestamp=datetime.now(),
-    validation_rules_applied=["rule1", "rule2"]
-)
-```
-
-### Validation Rules
-
-The system applies comprehensive validation rules:
-
-1. **Naming Rules**
-   - Component IDs must be non-empty and unique
-   - Net IDs must be non-empty and unique
-   - All identifiers are automatically trimmed of whitespace
-
-2. **Connectivity Rules**
-   - All nets must have at least one connection
-   - Components should be connected to nets (warning if not)
-
-3. **Electrical Rules**
-   - Ground nets (GND, GROUND, VSS) should have multiple connections
-   - Power nets should be properly distributed
-
-4. **Design Rules**
-   - Extensible system for custom validation rules
-
-## 🚀 Usage Examples
-
-### Creating a Simple Circuit
-
-```python
-from netwiz_backend.netlist.core.models import (
-    Netlist, Component, Pin, Net, NetConnection, ComponentType
-)
-
-# Create components
-mcu = Component(
-    id="U1",
-    type=ComponentType.IC,
-    pins=[
-        Pin(number="1", name="VCC", type="power"),
-        Pin(number="2", name="GND", type="power"),
-        Pin(number="3", name="CLK", type="input")
-    ],
-    value="3.3V",
-    package="QFP-32",
-    manufacturer="STMicroelectronics",
-    part_number="STM32F103C8T6"
-)
-
-resistor = Component(
-    id="R1",
-    type=ComponentType.RESISTOR,
-    pins=[Pin(number="1"), Pin(number="2")],
-    value="10kΩ",
-    package="0603"
-)
-
-# Create nets
-vcc_net = Net(
-    id="VCC",
-    connections=[
-        NetConnection(component="U1", pin="1"),
-        NetConnection(component="R1", pin="1")
-    ],
-    net_type="power"
-)
-
-gnd_net = Net(
-    id="GND",
-    connections=[
-        NetConnection(component="U1", pin="2"),
-        NetConnection(component="R1", pin="2")
-    ],
-    net_type="ground"
-)
-
-# Create netlist
-circuit = Netlist(
-    components=[mcu, resistor],
-    nets=[vcc_net, gnd_net],
-    metadata={
-        "designer": "John Doe",
-        "version": "1.0",
-        "description": "Simple MCU circuit with pull-up resistor"
+```json
+{
+  "id": "U1",
+  "type": "IC",
+  "pins": [
+    {
+      "number": "1",
+      "name": "VCC",
+      "type": "power"
+    },
+    {
+      "number": "2",
+      "name": "GND",
+      "type": "ground"
     }
-)
+  ],
+  "value": "3.3V",
+  "package": "QFP-32",
+  "manufacturer": "STMicroelectronics",
+  "part_number": "STM32F103C8T6"
+}
 ```
 
-### Validating a Netlist
+### Component Fields
 
-```python
-from netwiz_backend.netlist.core.validation import validate_netlist_internal
+- **`id`** (required): Unique identifier (e.g., "U1", "R5", "C10")
+- **`type`** (required): Component type - one of: `IC`, `RESISTOR`, `CAPACITOR`, `INDUCTOR`, `DIODE`, `TRANSISTOR`, `CONNECTOR`, `OTHER`
+- **`pins`** (required): Array of pin objects (minimum 1)
+- **`value`** (optional): Component value (e.g., "10kΩ", "100nF", "3.3V")
+- **`package`** (optional): Physical package type (e.g., "SOIC-8", "0603")
+- **`manufacturer`** (optional): Manufacturer name (e.g., "Texas Instruments")
+- **`part_number`** (optional): Manufacturer part number (e.g., "LM358")
 
-# Validate the circuit
-result = validate_netlist_internal(circuit)
+### Pin Fields
 
-if result.is_valid:
-    print("✅ Circuit is valid!")
-else:
-    print("❌ Validation errors found:")
-    for error in result.errors:
-        print(f"  - {error.message}")
-        if error.component_id:
-            print(f"    Component: {error.component_id}")
-        if error.net_id:
-            print(f"    Net: {error.net_id}")
+- **`number`** (required): Pin number or identifier (e.g., "1", "A1", "VCC")
+- **`name`** (optional): Pin name (e.g., "VCC", "GND", "CLK")
+- **`type`** (optional): Pin type (e.g., "power", "input", "output")
 
-if result.warnings:
-    print("⚠️ Warnings:")
-    for warning in result.warnings:
-        print(f"  - {warning.message}")
+## 🔌 Nets
+
+Each net represents an electrical connection between component pins:
+
+```json
+{
+  "id": "VCC",
+  "connections": [
+    {
+      "component": "U1",
+      "pin": "1"
+    },
+    {
+      "component": "R1",
+      "pin": "1"
+    }
+  ],
+  "net_type": "power"
+}
 ```
 
-## 🔧 Data Validation Features
+### Net Fields
 
-### Automatic Validation
-- **Type Safety**: Pydantic ensures all data types are correct
-- **Constraint Validation**: Built-in constraints prevent invalid data
-- **Whitespace Handling**: Automatic trimming of string fields
-- **Required Fields**: Enforced minimum requirements
+- **`id`** (required): Unique net identifier (e.g., "VCC", "GND", "CLK")
+- **`connections`** (required): Array of connections (minimum 1)
+- **`net_type`** (optional): Net type (e.g., "power", "ground", "signal")
 
-### Custom Validation
-- **Field Validators**: Custom validation logic for complex rules
-- **Cross-Field Validation**: Validation that spans multiple fields
-- **Business Rules**: Domain-specific validation logic
+### Connection Fields
 
-### Error Reporting
-- **Detailed Messages**: Clear, actionable error descriptions
-- **Location Information**: Specific component/net identification
-- **Severity Levels**: Distinction between errors and warnings
-- **Rule Tracking**: Audit trail of applied validation rules
+- **`component`** (required): Component ID this connection belongs to
+- **`pin`** (required): Pin number/identifier on the component
 
-## 🎯 Design Principles
+## 📊 Metadata
 
-### 1. **Type Safety First**
-All models use Pydantic for runtime type checking and validation, ensuring data integrity at every level.
+Optional additional information about the netlist:
 
-### 2. **Hierarchical Structure**
-The data model mirrors the physical structure of electronic circuits, making it intuitive for engineers.
+```json
+{
+  "metadata": {
+    "designer": "John Doe",
+    "version": "1.0",
+    "description": "Simple MCU circuit with pull-up resistor",
+    "project": "IoT Sensor"
+  }
+}
+```
 
-### 3. **Extensibility**
-The system is designed to be easily extended with new component types, validation rules, and metadata fields.
+## 🎯 Complete Example
 
-### 4. **Validation-Driven**
-Comprehensive validation ensures circuit integrity and catches common design errors early.
+Here's a complete netlist JSON for a simple microcontroller circuit:
 
-### 5. **API-Ready**
-All models are JSON-serializable and designed for seamless API integration.
+```json
+{
+  "components": [
+    {
+      "id": "U1",
+      "type": "IC",
+      "pins": [
+        {"number": "1", "name": "VCC", "type": "power"},
+        {"number": "2", "name": "GND", "type": "ground"},
+        {"number": "3", "name": "CLK", "type": "input"}
+      ],
+      "value": "3.3V",
+      "package": "QFP-32",
+      "manufacturer": "STMicroelectronics",
+      "part_number": "STM32F103C8T6"
+    },
+    {
+      "id": "R1",
+      "type": "RESISTOR",
+      "pins": [
+        {"number": "1"},
+        {"number": "2"}
+      ],
+      "value": "10kΩ",
+      "package": "0603"
+    }
+  ],
+  "nets": [
+    {
+      "id": "VCC",
+      "connections": [
+        {"component": "U1", "pin": "1"},
+        {"component": "R1", "pin": "1"}
+      ],
+      "net_type": "power"
+    },
+    {
+      "id": "GND",
+      "connections": [
+        {"component": "U1", "pin": "2"},
+        {"component": "R1", "pin": "2"}
+      ],
+      "net_type": "ground"
+    }
+  ],
+  "metadata": {
+    "designer": "John Doe",
+    "version": "1.0",
+    "description": "Simple MCU circuit with pull-up resistor"
+  }
+}
+```
 
-## 🔍 Best Practices
+## ✅ Validation Rules
 
-### Component Naming
-- Use consistent naming conventions (U1, U2 for ICs; R1, R2 for resistors)
-- Include meaningful prefixes for different component types
-- Keep IDs short but descriptive
+The API validates netlists against these rules:
 
-### Net Naming
-- Use standard net names (VCC, GND, CLK, DATA)
-- Group related signals with consistent naming patterns
-- Use descriptive names for custom signals
+1. **Non-empty IDs**: Component and net IDs cannot be blank
+2. **Unique IDs**: All component IDs must be unique, all net IDs must be unique
+3. **Valid Connections**: All net connections must reference existing components and pins
+4. **Minimum Requirements**: At least one component and one net required
+5. **Connected Components**: Components should be connected to nets (warnings for unconnected)
 
-### Pin Definitions
-- Always include pin numbers
-- Add pin names for important signals (power, clock, reset)
-- Use pin types to categorize functionality
+## 🚀 Component Types
 
-### Validation
-- Always validate netlists before processing
-- Review warnings even if validation passes
-- Use metadata to track design information
+| Type | Description | Example |
+|------|-------------|---------|
+| `IC` | Integrated circuits | Microcontrollers, processors |
+| `RESISTOR` | Passive resistors | Pull-up resistors, current limiting |
+| `CAPACITOR` | Passive capacitors | Decoupling, filtering |
+| `INDUCTOR` | Passive inductors | Power filtering, RF circuits |
+| `DIODE` | Semiconductor diodes | Protection, rectification |
+| `TRANSISTOR` | Semiconductor transistors | Amplification, switching |
+| `CONNECTOR` | Mechanical connectors | Headers, jacks, sockets |
+| `OTHER` | Components that don't fit standard categories | Custom parts |
 
-## 🚧 Future Enhancements
+## 📝 Field Constraints
 
-### Planned Features
-- **Advanced Validation Rules**: More sophisticated electrical rule checking
-- **Component Libraries**: Standard component definitions
-- **Netlist Comparison**: Diff functionality for design changes
-- **Export Formats**: Support for additional netlist formats
-- **Performance Optimization**: Faster validation for large circuits
+### Required Fields
+- `components[].id` - Must be non-empty string
+- `components[].type` - Must be valid ComponentType
+- `components[].pins` - Must have at least 1 pin
+- `components[].pins[].number` - Must be non-empty string
+- `nets[].id` - Must be non-empty string
+- `nets[].connections` - Must have at least 1 connection
+- `nets[].connections[].component` - Must be non-empty string
+- `nets[].connections[].pin` - Must be non-empty string
 
-### Extension Points
-- **Custom Component Types**: Add domain-specific component categories
-- **Validation Plugins**: Plugin system for custom validation rules
-- **Metadata Schemas**: Structured metadata validation
-- **Import/Export**: Additional format support
+### Optional Fields
+- All other fields are optional and can be omitted
+- String fields are automatically trimmed of whitespace
+- Empty strings are treated as missing values
 
-## 📚 Related Documentation
+## 🔍 Common Patterns
 
-- [NetWiz Backend README](../../README.md) - Overall backend documentation
-- [API Documentation](../../../README.md) - API endpoint documentation
-- [Validation Rules](./validation.py) - Detailed validation rule documentation
-- [Data Models](./models.py) - Complete model reference
+### Power Distribution
+```json
+{
+  "id": "VCC",
+  "connections": [
+    {"component": "U1", "pin": "1"},
+    {"component": "U2", "pin": "1"},
+    {"component": "C1", "pin": "1"}
+  ],
+  "net_type": "power"
+}
+```
 
-## 🤝 Contributing
+### Ground Plane
+```json
+{
+  "id": "GND",
+  "connections": [
+    {"component": "U1", "pin": "2"},
+    {"component": "U2", "pin": "2"},
+    {"component": "C1", "pin": "2"},
+    {"component": "C2", "pin": "2"}
+  ],
+  "net_type": "ground"
+}
+```
 
-When contributing to the core module:
+### Signal Nets
+```json
+{
+  "id": "CLK",
+  "connections": [
+    {"component": "U1", "pin": "3"},
+    {"component": "U2", "pin": "5"}
+  ],
+  "net_type": "signal"
+}
+```
 
-1. **Follow Type Safety**: Always use proper type hints
-2. **Add Validation**: Include appropriate validation rules
-3. **Update Documentation**: Keep docstrings and examples current
-4. **Test Thoroughly**: Ensure all validation rules work correctly
-5. **Maintain Compatibility**: Don't break existing API contracts
+## ⚠️ Common Mistakes
 
----
+1. **Missing pin numbers**: Always include pin numbers in connections
+2. **Inconsistent naming**: Use consistent naming conventions for components and nets
+3. **Orphaned components**: Make sure all components are connected to nets
+4. **Duplicate IDs**: Ensure all component and net IDs are unique
+5. **Empty connections**: Nets must have at least one connection
 
-*This core module forms the foundation of the NetWiz system. It's designed to be robust, extensible, and easy to use for electronic circuit representation and validation.*
+## 🎯 Best Practices
+
+1. **Use descriptive IDs**: "U1", "R5", "C10" are better than generic names
+2. **Include pin names**: Add names for important pins (VCC, GND, CLK)
+3. **Group related nets**: Use consistent naming for power, ground, and signal nets
+4. **Add metadata**: Include designer, version, and description information
+5. **Validate early**: Check your netlist against validation rules before submitting
