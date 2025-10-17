@@ -37,8 +37,12 @@ Example:
 from collections import Counter
 from datetime import datetime, timezone
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field, conlist, constr
+
+if TYPE_CHECKING:
+    from .json_parser import LocationInfo
 
 
 class ValidationErrorType(str, Enum):
@@ -123,6 +127,12 @@ class ValidationError(BaseModel):
     severity: constr(strip_whitespace=True) = Field(
         default="error", description="Error severity level"
     )
+    line_number: int | None = Field(
+        default=None, description="Line number in the original JSON file"
+    )
+    character_position: int | None = Field(
+        default=None, description="Character position in the line"
+    )
 
 
 class ValidationResult(BaseModel):
@@ -184,7 +194,9 @@ class ValidationResult(BaseModel):
     )
 
 
-def validate_netlist_internal(netlist) -> ValidationResult:
+def validate_netlist_internal(
+    netlist, locations: dict[str, "LocationInfo"] | None = None
+) -> ValidationResult:
     """
     Perform comprehensive validation of a netlist according to design rules.
 
@@ -234,12 +246,21 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     applied_rules.append(ValidationErrorType.BLANK_COMPONENT_NAME)
     for i, component in enumerate(netlist.components):
         if not component.name or not component.name.strip():
+            # Get location information if available
+            location = None
+            if locations:
+                location = locations.get(f"components.{i}.name")
+
             errors.append(
                 ValidationError(
                     error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
                     message=f"Component names cannot be blank (Component #{i})",
                     component_id=component.name,
                     severity="error",
+                    line_number=location.line_number if location else None,
+                    character_position=location.character_position
+                    if location
+                    else None,
                 )
             )
 
@@ -247,12 +268,21 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     applied_rules.append(ValidationErrorType.BLANK_NET_NAME)
     for i, net in enumerate(netlist.nets):
         if not net.name or not net.name.strip():
+            # Get location information if available
+            location = None
+            if locations:
+                location = locations.get(f"nets.{i}.name")
+
             errors.append(
                 ValidationError(
                     error_type=ValidationErrorType.BLANK_NET_NAME,
                     message=f"Net names cannot be blank (Net #{i})",
                     net_id=net.name,
                     severity="error",
+                    line_number=location.line_number if location else None,
+                    character_position=location.character_position
+                    if location
+                    else None,
                 )
             )
 
@@ -263,11 +293,26 @@ def validate_netlist_internal(netlist) -> ValidationResult:
         name for name, count in Counter(component_names).items() if count > 1
     ]
     for name in dup_component_names:
+        # Find the first occurrence of this component name for location
+        component_location = None
+        if locations:
+            for i, component in enumerate(netlist.components):
+                if component.name == name:
+                    component_location = locations.get(f"components.{i}.name")
+                    break
+
         errors.append(
             ValidationError(
                 error_type=ValidationErrorType.DUPLICATE_COMPONENT_NAME,
                 message=f"Component names must be unique ('{name}')",
+                component_id=name,
                 severity="error",
+                line_number=component_location.line_number
+                if component_location
+                else None,
+                character_position=component_location.character_position
+                if component_location
+                else None,
             )
         )
 
@@ -276,11 +321,24 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     net_names = [net.name for net in netlist.nets]
     dup_net_names = [name for name, count in Counter(net_names).items() if count > 1]
     for name in dup_net_names:
+        # Find the first occurrence of this net name for location
+        net_location = None
+        if locations:
+            for i, net in enumerate(netlist.nets):
+                if net.name == name:
+                    net_location = locations.get(f"nets.{i}.name")
+                    break
+
         errors.append(
             ValidationError(
                 error_type=ValidationErrorType.DUPLICATE_NET_NAME,
                 message=f"Net names must be unique ('{name}')",
+                net_id=name,
                 severity="error",
+                line_number=net_location.line_number if net_location else None,
+                character_position=net_location.character_position
+                if net_location
+                else None,
             )
         )
 

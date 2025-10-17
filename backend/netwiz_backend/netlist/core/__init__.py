@@ -35,6 +35,17 @@ Example:
 """
 
 # Import core models
+# Import JSON parser
+from .json_parser import (
+    LocationInfo,
+    ParseResult,
+    find_element_location,
+    get_location_for_component,
+    get_location_for_component_name,
+    get_location_for_net,
+    get_location_for_net_name,
+    parse_netlist_with_locations,
+)
 from .models import (
     Component,
     ComponentType,
@@ -69,4 +80,13 @@ __all__ = [
     "ValidationErrorType",
     "ValidationResult",
     "validate_netlist_internal",
+    # JSON Parser
+    "LocationInfo",
+    "ParseResult",
+    "parse_netlist_with_locations",
+    "find_element_location",
+    "get_location_for_component",
+    "get_location_for_component_name",
+    "get_location_for_net",
+    "get_location_for_net_name",
 ]
