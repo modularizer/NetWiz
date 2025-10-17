@@ -26,14 +26,12 @@ Each component represents an electronic part (resistor, capacitor, IC, etc.):
     {
       "number": "1",
       "name": "VCC",
-      "type": "power",
-      "direction": "power"
+      "type": "power"
     },
     {
       "number": "2",
       "name": "GND",
-      "type": "ground",
-      "direction": "ground"
+      "type": "ground"
     }
   ],
   "value": "3.3V",
@@ -57,8 +55,7 @@ Each component represents an electronic part (resistor, capacitor, IC, etc.):
 
 - **`number`** (required): Pin number or identifier (e.g., "1", "A1", "VCC")
 - **`name`** (optional): Pin name (e.g., "VCC", "GND", "CLK")
-- **`type`** (optional): Pin type (e.g., "power", "input", "output")
-- **`direction`** (optional): Electrical direction - one of: `input`, `output`, `bidirectional`, `power`, `ground`, `passive`
+- **`type`** (optional): Pin electrical type - one of: `input`, `output`, `bidirectional`, `power`, `ground`, `passive`, `analog`, `digital`, `clock`, `reset`, `other`
 
 ## 🔌 Nets
 
@@ -85,7 +82,7 @@ Each net represents an electrical connection between component pins:
 
 - **`name`** (required): Unique net identifier (e.g., "VCC", "GND", "CLK")
 - **`connections`** (required): Array of connections (minimum 1)
-- **`net_type`** (optional): Net type (e.g., "power", "ground", "signal")
+- **`net_type`** (optional): Net electrical type - one of: `power`, `ground`, `signal`, `clock`, `analog`, `digital`, `data`, `control`, `other`
 
 ### Connection Fields
 
@@ -118,9 +115,9 @@ Here's a complete netlist JSON for a simple microcontroller circuit:
       "name": "U1",
       "type": "IC",
       "pins": [
-        {"number": "1", "name": "VCC", "type": "power", "direction": "power"},
-        {"number": "2", "name": "GND", "type": "ground", "direction": "ground"},
-        {"number": "3", "name": "CLK", "type": "input", "direction": "input"}
+        {"number": "1", "name": "VCC", "type": "power"},
+        {"number": "2", "name": "GND", "type": "ground"},
+        {"number": "3", "name": "CLK", "type": "clock"}
       ],
       "value": "3.3V",
       "package": "QFP-32",
@@ -174,18 +171,39 @@ The API validates netlists against these rules:
 4. **Minimum Requirements**: At least one component and one net required
 5. **Connected Components**: Components should be connected to nets (warnings for unconnected)
 
-## 🎯 Pin Directions
+## 🎯 Pin Types
 
-The `direction` field categorizes pins by their electrical function:
+The `type` field categorizes pins by their electrical function:
 
-| Direction | Description | Example Usage |
-|-----------|-------------|---------------|
+| Type | Description | Example Usage |
+|------|-------------|---------------|
 | `input` | Pin receives signals from external sources | Clock inputs, data inputs, control signals |
 | `output` | Pin drives signals to external loads | Data outputs, control outputs, status signals |
 | `bidirectional` | Pin can both receive and drive signals | Data buses, I/O pins |
 | `power` | Pin provides power supply voltage | VCC, VDD, +3.3V, +5V |
 | `ground` | Pin provides ground reference | GND, VSS, 0V reference |
 | `passive` | Pin for passive components | Resistor terminals, capacitor terminals |
+| `analog` | Pin for analog signals | ADC inputs, DAC outputs |
+| `digital` | Pin for digital signals | GPIO pins, digital I/O |
+| `clock` | Pin for clock signals | System clocks, reference clocks |
+| `reset` | Pin for reset signals | Reset inputs, power-on reset |
+| `other` | Pin type that doesn't fit standard categories | Special function pins |
+
+## 🌐 Net Types
+
+The `net_type` field categorizes nets by their electrical function:
+
+| Type | Description | Example Usage |
+|------|-------------|---------------|
+| `power` | Net provides power supply voltage | VCC, VDD, +3.3V, +5V |
+| `ground` | Net provides ground reference | GND, VSS, 0V reference |
+| `signal` | Net carries general purpose signals | General I/O signals |
+| `clock` | Net carries clock signals | System clocks, reference clocks |
+| `analog` | Net carries analog signals | ADC inputs, DAC outputs |
+| `digital` | Net carries digital signals | Digital I/O, data buses |
+| `data` | Net carries data signals | Data buses, communication lines |
+| `control` | Net carries control signals | Enable, reset, interrupt signals |
+| `other` | Net type that doesn't fit standard categories | Special function nets |
 
 ## 🚀 Component Types
 

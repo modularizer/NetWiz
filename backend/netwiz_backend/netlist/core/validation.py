@@ -34,10 +34,54 @@ Example:
             print(f"  - {error.message}")
     ```
 """
-
+from collections import Counter
 from datetime import datetime, timezone
+from enum import Enum
 
 from pydantic import BaseModel, Field, conlist, constr
+
+
+class ValidationErrorType(str, Enum):
+    """
+    Enumeration of validation error types.
+
+    This enum defines all possible validation error types that can occur
+    during netlist validation. Each error type represents a specific
+    validation rule that was violated.
+
+    Attributes:
+        BLANK_COMPONENT_NAME: Component name is empty or whitespace-only
+        BLANK_NET_NAME: Net name is empty or whitespace-only
+        DUPLICATE_COMPONENT_NAME: Multiple components have the same name
+        DUPLICATE_NET_NAME: Multiple nets have the same name
+        MISSING_GROUND: No ground nets found in the netlist
+        INSUFFICIENT_GND_CONNECTIONS: Ground net has fewer than 2 connections
+        GROUND_PIN_NOT_CONNECTED_TO_GROUND: Pin marked as ground type is not connected to a ground net
+        POWER_PIN_NOT_CONNECTED_TO_POWER: Pin marked as power type is not connected to a power net
+        CLOCK_NET_SINGLE_CONNECTION: Clock net has only one connection (should typically have multiple)
+        NET_TYPE_NAME_MISMATCH: Net type doesn't match net name convention
+        MISNAMED_GROUND_NET: Net named like ground but typed as something else
+        MISNAMED_POWER_NET: Net named like power but typed as something else
+        MISNAMED_CLOCK_NET: Net named like clock but typed as something else
+        ORPHANED_NET: Net has no connections
+        UNCONNECTED_COMPONENT: Component is not connected to any net
+    """
+
+    BLANK_COMPONENT_NAME = "blank_component_name"
+    BLANK_NET_NAME = "blank_net_name"
+    DUPLICATE_COMPONENT_NAME = "duplicate_component_name"
+    DUPLICATE_NET_NAME = "duplicate_net_name"
+    MISSING_GROUND = "missing_ground"
+    INSUFFICIENT_GND_CONNECTIONS = "insufficient_gnd_connections"
+    GROUND_PIN_NOT_CONNECTED_TO_GROUND = "ground_pin_not_connected_to_ground"
+    POWER_PIN_NOT_CONNECTED_TO_POWER = "power_pin_not_connected_to_power"
+    CLOCK_NET_SINGLE_CONNECTION = "clock_net_single_connection"
+    NET_TYPE_NAME_MISMATCH = "net_type_name_mismatch"
+    MISNAMED_GROUND_NET = "misnamed_ground_net"
+    MISNAMED_POWER_NET = "misnamed_power_net"
+    MISNAMED_CLOCK_NET = "misnamed_clock_net"
+    ORPHANED_NET = "orphaned_net"
+    UNCONNECTED_COMPONENT = "unconnected_component"
 
 
 class ValidationError(BaseModel):
@@ -66,9 +110,7 @@ class ValidationError(BaseModel):
         ```
     """
 
-    error_type: constr(strip_whitespace=True) = Field(
-        ..., description="Type of validation error"
-    )
+    error_type: ValidationErrorType = Field(..., description="Type of validation error")
     message: constr(strip_whitespace=True) = Field(
         ..., description="Human-readable error message"
     )
@@ -133,8 +175,12 @@ class ValidationResult(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="When validation was performed",
     )
-    validation_rules_applied: conlist(constr(strip_whitespace=True)) = Field(
+    validation_rules_applied: conlist(ValidationErrorType) = Field(
         default_factory=list, description="List of validation rules that were applied"
+    )
+    auto_fill_suggestions: list[dict[str, str]] = Field(
+        default_factory=list,
+        description="Suggestions for auto-filling missing net types based on names",
     )
 
 
@@ -185,79 +231,383 @@ def validate_netlist_internal(netlist) -> ValidationResult:
     applied_rules = []
 
     # Rule 1: Check for blank component names
-    applied_rules.append("blank_component_names")
-    for component in netlist.components:
+    applied_rules.append(ValidationErrorType.BLANK_COMPONENT_NAME)
+    for i, component in enumerate(netlist.components):
         if not component.name or not component.name.strip():
             errors.append(
                 ValidationError(
-                    error_type="blank_component_name",
-                    message="Component names cannot be blank",
+                    error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
+                    message=f"Component names cannot be blank (Component #{i})",
                     component_id=component.name,
                     severity="error",
                 )
             )
 
     # Rule 2: Check for blank net names
-    applied_rules.append("blank_net_names")
-    for net in netlist.nets:
+    applied_rules.append(ValidationErrorType.BLANK_NET_NAME)
+    for i, net in enumerate(netlist.nets):
         if not net.name or not net.name.strip():
             errors.append(
                 ValidationError(
-                    error_type="blank_net_name",
-                    message="Net names cannot be blank",
+                    error_type=ValidationErrorType.BLANK_NET_NAME,
+                    message=f"Net names cannot be blank (Net #{i})",
                     net_id=net.name,
                     severity="error",
                 )
             )
 
-    # Rule 3: Check for unique component IDs
-    applied_rules.append("unique_component_names")
-    component_ids = [comp.name for comp in netlist.components]
-    if len(component_ids) != len(set(component_ids)):
+    # Rule 3: Check for unique component names
+    applied_rules.append(ValidationErrorType.DUPLICATE_COMPONENT_NAME)
+    component_names = [comp.name for comp in netlist.components]
+    dup_component_names = [
+        name for name, count in Counter(component_names).items() if count > 1
+    ]
+    for name in dup_component_names:
         errors.append(
             ValidationError(
-                error_type="duplicate_component_name",
-                message="Component names must be unique",
+                error_type=ValidationErrorType.DUPLICATE_COMPONENT_NAME,
+                message=f"Component names must be unique ('{name}')",
                 severity="error",
             )
         )
 
     # Rule 4: Check for unique net IDs
-    applied_rules.append("unique_net_names")
-    net_ids = [net.name for net in netlist.nets]
-    if len(net_ids) != len(set(net_ids)):
+    applied_rules.append(ValidationErrorType.DUPLICATE_NET_NAME)
+    net_names = [net.name for net in netlist.nets]
+    dup_net_names = [name for name, count in Counter(net_names).items() if count > 1]
+    for name in dup_net_names:
         errors.append(
             ValidationError(
-                error_type="duplicate_net_name",
-                message="Net names must be unique",
+                error_type=ValidationErrorType.DUPLICATE_NET_NAME,
+                message=f"Net names must be unique ('{name}')",
                 severity="error",
             )
         )
 
-    # Rule 5: Check GND connectivity
-    applied_rules.append("gnd_connectivity")
-    gnd_nets = [
-        net for net in netlist.nets if net.name.upper() in ["GND", "GROUND", "VSS"]
-    ]
-    if gnd_nets:
-        gnd_net = gnd_nets[0]
-        if len(gnd_net.connections) < 2:
+    # Add warnings if any components have the same names as nets
+    # (This uses DUPLICATE_NET_NAME as the error type)
+    all_names = net_names + component_names
+    dup_names = [name for name, count in Counter(all_names).items() if count > 1]
+    for name in dup_names:
+        warnings.append(
+            ValidationError(
+                error_type=ValidationErrorType.DUPLICATE_NET_NAME,
+                message=f"Component and Net share a name ('{name}')",
+                severity="warning",
+            )
+        )
+
+    # Rule 5: Check GND connectivity using net_type
+    applied_rules.append(ValidationErrorType.MISSING_GROUND)
+    applied_rules.append(ValidationErrorType.INSUFFICIENT_GND_CONNECTIONS)
+
+    # Find ground nets by net_type first, then fall back to name-based detection
+    gnd_nets_by_type = [n for n in netlist.nets if n.net_type == "ground"]
+    ground_names = {"GND", "GROUND", "VSS", "AGND", "DGND", "PGND"}
+    gnd_nets_by_name = [n for n in netlist.nets if n.name.upper() in ground_names]
+
+    # Combine both methods, prioritizing net_type (use names to avoid hash issues)
+    gnd_net_names = set()
+    for net in gnd_nets_by_type:
+        gnd_net_names.add(net.name)
+    for net in gnd_nets_by_name:
+        gnd_net_names.add(net.name)
+
+    all_gnd_nets = [n for n in netlist.nets if n.name in gnd_net_names]
+
+    if not all_gnd_nets:
+        errors.append(
+            ValidationError(
+                error_type=ValidationErrorType.MISSING_GROUND,
+                message="No ground nets found",
+                severity="error",
+            )
+        )
+
+    for net in all_gnd_nets:
+        if len(net.connections) < 2:
             warnings.append(
                 ValidationError(
-                    error_type="insufficient_gnd_connections",
-                    message="GND net should be connected to multiple components",
-                    net_id=gnd_net.name,
+                    error_type=ValidationErrorType.INSUFFICIENT_GND_CONNECTIONS,
+                    message=f"Ground net '{net.name}' has only {len(net.connections)} connection(s)",
+                    net_id=net.name,
                     severity="warning",
                 )
             )
 
+    # Rule 5.5: Check that ground pins are connected to ground nets
+    applied_rules.append(ValidationErrorType.GROUND_PIN_NOT_CONNECTED_TO_GROUND)
+
+    # Find all ground pins
+    ground_pins = []
+    for component in netlist.components:
+        for pin in component.pins:
+            if pin.type == "ground":
+                ground_pins.append((component.name, pin.number))
+
+    # Check if each ground pin is connected to a ground net (using enhanced detection)
+    for component_name, pin_number in ground_pins:
+        connected_to_ground = False
+        for net in all_gnd_nets:  # Use the enhanced ground net list
+            for connection in net.connections:
+                if (
+                    connection.component == component_name
+                    and connection.pin == pin_number
+                ):
+                    connected_to_ground = True
+                    break
+            if connected_to_ground:
+                break
+
+        if not connected_to_ground:
+            errors.append(
+                ValidationError(
+                    error_type=ValidationErrorType.GROUND_PIN_NOT_CONNECTED_TO_GROUND,
+                    message=f"Ground pin {component_name}.{pin_number} is not connected to a ground net",
+                    component_id=component_name,
+                    severity="error",
+                )
+            )
+
+    # Rule 5.6: Check that power pins are connected to power nets
+    applied_rules.append(ValidationErrorType.POWER_PIN_NOT_CONNECTED_TO_POWER)
+
+    # Find power nets by net_type first, then fall back to name-based detection
+    power_nets_by_type = [n for n in netlist.nets if n.net_type == "power"]
+    power_names = {"VCC", "VDD", "VIN", "VOUT", "+3V3", "+5V", "+12V"}
+    power_nets_by_name = [n for n in netlist.nets if n.name.upper() in power_names]
+
+    # Combine both methods (use names to avoid hash issues)
+    power_net_names = set()
+    for net in power_nets_by_type:
+        power_net_names.add(net.name)
+    for net in power_nets_by_name:
+        power_net_names.add(net.name)
+
+    all_power_nets = [n for n in netlist.nets if n.name in power_net_names]
+
+    # Find all power pins
+    power_pins = []
+    for component in netlist.components:
+        for pin in component.pins:
+            if pin.type == "power":
+                power_pins.append((component.name, pin.number))
+
+    # Check if each power pin is connected to a power net
+    for component_name, pin_number in power_pins:
+        connected_to_power = False
+        for net in all_power_nets:
+            for connection in net.connections:
+                if (
+                    connection.component == component_name
+                    and connection.pin == pin_number
+                ):
+                    connected_to_power = True
+                    break
+            if connected_to_power:
+                break
+
+        if not connected_to_power:
+            warnings.append(
+                ValidationError(
+                    error_type=ValidationErrorType.POWER_PIN_NOT_CONNECTED_TO_POWER,
+                    message=f"Power pin {component_name}.{pin_number} is not connected to a power net",
+                    component_id=component_name,
+                    severity="warning",
+                )
+            )
+
+    # Rule 5.7: Check clock nets for proper connectivity
+    applied_rules.append(ValidationErrorType.CLOCK_NET_SINGLE_CONNECTION)
+    clock_nets = [n for n in netlist.nets if n.net_type == "clock"]
+
+    for net in clock_nets:
+        if len(net.connections) == 1:
+            warnings.append(
+                ValidationError(
+                    error_type=ValidationErrorType.CLOCK_NET_SINGLE_CONNECTION,
+                    message=f"Clock net '{net.name}' has only one connection - consider if this is intentional",
+                    net_id=net.name,
+                    severity="warning",
+                )
+            )
+
+    # Rule 5.8: Check for net type and name consistency
+    applied_rules.append(ValidationErrorType.NET_TYPE_NAME_MISMATCH)
+
+    for net in netlist.nets:
+        if net.net_type and net.name:
+            net_name_upper = net.name.upper()
+
+            # Check for mismatches
+            if net.net_type == "ground" and net_name_upper not in {
+                "GND",
+                "GROUND",
+                "VSS",
+                "AGND",
+                "DGND",
+                "PGND",
+            }:
+                warnings.append(
+                    ValidationError(
+                        error_type=ValidationErrorType.NET_TYPE_NAME_MISMATCH,
+                        message=f"Net '{net.name}' is typed as 'ground' but name doesn't follow ground naming convention",
+                        net_id=net.name,
+                        severity="warning",
+                    )
+                )
+            elif net.net_type == "power" and not any(
+                power_name in net_name_upper
+                for power_name in {"VCC", "VDD", "VIN", "VOUT", "+3V3", "+5V", "+12V"}
+            ):
+                warnings.append(
+                    ValidationError(
+                        error_type=ValidationErrorType.NET_TYPE_NAME_MISMATCH,
+                        message=f"Net '{net.name}' is typed as 'power' but name doesn't follow power naming convention",
+                        net_id=net.name,
+                        severity="warning",
+                    )
+                )
+
+    # Rule 5.9: Check for misnamed nets (name suggests one type but net_type is different)
+    applied_rules.append(ValidationErrorType.MISNAMED_GROUND_NET)
+    applied_rules.append(ValidationErrorType.MISNAMED_POWER_NET)
+    applied_rules.append(ValidationErrorType.MISNAMED_CLOCK_NET)
+
+    for net in netlist.nets:
+        if net.net_type and net.name:
+            net_name_upper = net.name.upper()
+
+            # Check for ground naming but wrong type
+            if (
+                net_name_upper in {"GND", "GROUND", "VSS", "AGND", "DGND", "PGND"}
+                and net.net_type != "ground"
+            ):
+                warnings.append(
+                    ValidationError(
+                        error_type=ValidationErrorType.MISNAMED_GROUND_NET,
+                        message=f"Net '{net.name}' is named like a ground net but typed as '{net.net_type}' - consider changing type to 'ground'",
+                        net_id=net.name,
+                        severity="warning",
+                    )
+                )
+
+            # Check for power naming but wrong type
+            elif (
+                any(
+                    power_name in net_name_upper
+                    for power_name in {
+                        "VCC",
+                        "VDD",
+                        "VIN",
+                        "VOUT",
+                        "+3V3",
+                        "+5V",
+                        "+12V",
+                    }
+                )
+                and net.net_type != "power"
+            ):
+                warnings.append(
+                    ValidationError(
+                        error_type=ValidationErrorType.MISNAMED_POWER_NET,
+                        message=f"Net '{net.name}' is named like a power net but typed as '{net.net_type}' - consider changing type to 'power'",
+                        net_id=net.name,
+                        severity="warning",
+                    )
+                )
+
+            # Check for clock naming but wrong type
+            elif (
+                any(
+                    clock_name in net_name_upper
+                    for clock_name in {"CLK", "CLOCK", "SCK", "SCLK", "MCLK", "BCLK"}
+                )
+                and net.net_type != "clock"
+            ):
+                warnings.append(
+                    ValidationError(
+                        error_type=ValidationErrorType.MISNAMED_CLOCK_NET,
+                        message=f"Net '{net.name}' is named like a clock net but typed as '{net.net_type}' - consider changing type to 'clock'",
+                        net_id=net.name,
+                        severity="warning",
+                    )
+                )
+
+    # Rule 5.10: Auto-suggest net_type for nets with recognizable names but empty type
+    # This is informational - we'll add suggestions to the validation result
+    auto_fill_suggestions = []
+    for net in netlist.nets:
+        if not net.net_type and net.name:
+            net_name_upper = net.name.upper()
+            suggested_type = None
+
+            # Check for ground naming
+            if net_name_upper in {"GND", "GROUND", "VSS", "AGND", "DGND", "PGND"}:
+                suggested_type = "ground"
+            # Check for power naming
+            elif any(
+                power_name in net_name_upper
+                for power_name in {"VCC", "VDD", "VIN", "VOUT", "+3V3", "+5V", "+12V"}
+            ):
+                suggested_type = "power"
+            # Check for clock naming
+            elif any(
+                clock_name in net_name_upper
+                for clock_name in {"CLK", "CLOCK", "SCK", "SCLK", "MCLK", "BCLK"}
+            ):
+                suggested_type = "clock"
+            # Check for data naming
+            elif any(
+                data_name in net_name_upper
+                for data_name in {
+                    "DATA",
+                    "D0",
+                    "D1",
+                    "D2",
+                    "D3",
+                    "D4",
+                    "D5",
+                    "D6",
+                    "D7",
+                    "MOSI",
+                    "MISO",
+                    "SDA",
+                }
+            ):
+                suggested_type = "data"
+            # Check for control naming
+            elif any(
+                control_name in net_name_upper
+                for control_name in {
+                    "CS",
+                    "CE",
+                    "EN",
+                    "ENABLE",
+                    "RESET",
+                    "RST",
+                    "INT",
+                    "IRQ",
+                }
+            ):
+                suggested_type = "control"
+
+            if suggested_type:
+                auto_fill_suggestions.append(
+                    {
+                        "net_name": net.name,
+                        "suggested_type": suggested_type,
+                        "reason": f"Name '{net.name}' follows {suggested_type} naming convention",
+                    }
+                )
+
     # Rule 6: Check for orphaned nets (nets with no connections)
-    applied_rules.append("orphaned_nets")
+    applied_rules.append(ValidationErrorType.ORPHANED_NET)
     for net in netlist.nets:
         if not net.connections:
             errors.append(
                 ValidationError(
-                    error_type="orphaned_net",
+                    error_type=ValidationErrorType.ORPHANED_NET,
                     message="Net must have at least one connection",
                     net_id=net.name,
                     severity="error",
@@ -265,7 +615,7 @@ def validate_netlist_internal(netlist) -> ValidationResult:
             )
 
     # Rule 7: Check for components with no connections
-    applied_rules.append("unconnected_components")
+    applied_rules.append(ValidationErrorType.UNCONNECTED_COMPONENT)
     connected_components = set()
     for net in netlist.nets:
         for connection in net.connections:
@@ -275,7 +625,7 @@ def validate_netlist_internal(netlist) -> ValidationResult:
         if component.name not in connected_components:
             warnings.append(
                 ValidationError(
-                    error_type="unconnected_component",
+                    error_type=ValidationErrorType.UNCONNECTED_COMPONENT,
                     message="Component is not connected to any net",
                     component_id=component.name,
                     severity="warning",
@@ -288,4 +638,5 @@ def validate_netlist_internal(netlist) -> ValidationResult:
         warnings=warnings,
         validation_timestamp=datetime.utcnow(),
         validation_rules_applied=applied_rules,
+        auto_fill_suggestions=auto_fill_suggestions,
     )

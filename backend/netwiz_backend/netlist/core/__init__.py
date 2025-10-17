@@ -41,13 +41,15 @@ from .models import (
     Net,
     NetConnection,
     Netlist,
+    NetType,
     Pin,
-    PinDirection,
+    PinType,
 )
 
 # Import validation
 from .validation import (
     ValidationError,
+    ValidationErrorType,
     ValidationResult,
     validate_netlist_internal,
 )
@@ -59,10 +61,12 @@ __all__ = [
     "Net",
     "NetConnection",
     "Netlist",
+    "NetType",
     "Pin",
-    "PinDirection",
+    "PinType",
     # Validation
     "ValidationError",
+    "ValidationErrorType",
     "ValidationResult",
     "validate_netlist_internal",
 ]

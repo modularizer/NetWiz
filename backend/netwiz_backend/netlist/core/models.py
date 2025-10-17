@@ -19,7 +19,7 @@ The models follow a hierarchical structure:
 
 Example:
     ```python
-    from netwiz_backend.netlist.core.models import Netlist, Component, Pin, Net, NetConnection, ComponentType, PinDirection
+    from netwiz_backend.netlist.core.models import Netlist, Component, Pin, Net, NetConnection, ComponentType, PinType, NetType
 
     # Create a simple circuit
     netlist = Netlist(
@@ -27,13 +27,14 @@ Example:
             Component(
                 name="U1",
                 type=ComponentType.IC,
-                pins=[Pin(number="1", name="VCC", direction=PinDirection.POWER), Pin(number="2", name="GND", direction=PinDirection.GROUND)]
+                pins=[Pin(number="1", name="VCC", type=PinType.POWER), Pin(number="2", name="GND", type=PinType.GROUND)]
             )
         ],
         nets=[
             Net(
                 name="VCC",
-                connections=[NetConnection(component="U1", pin="1")]
+                connections=[NetConnection(component="U1", pin="1")],
+                net_type=NetType.POWER
             )
         ]
     )
@@ -46,12 +47,12 @@ from typing import Any
 from pydantic import BaseModel, Field, conlist, constr, field_validator
 
 
-class PinDirection(str, Enum):
+class PinType(str, Enum):
     """
-    Enumeration of pin electrical directions and functions.
+    Enumeration of pin electrical types and functions.
 
     This enum defines the electrical characteristics and signal flow direction
-    for component pins. Each direction represents a different electrical
+    for component pins. Each type represents a different electrical
     function and usage pattern.
 
     Attributes:
@@ -61,6 +62,11 @@ class PinDirection(str, Enum):
         POWER: Pin provides power supply voltage
         GROUND: Pin provides ground reference
         PASSIVE: Pin for passive components (resistors, capacitors, etc.)
+        ANALOG: Pin for analog signals
+        DIGITAL: Pin for digital signals
+        CLOCK: Pin for clock signals
+        RESET: Pin for reset signals
+        OTHER: Pin type that doesn't fit standard categories
     """
 
     INPUT = "input"
@@ -69,6 +75,42 @@ class PinDirection(str, Enum):
     POWER = "power"
     GROUND = "ground"
     PASSIVE = "passive"
+    ANALOG = "analog"
+    DIGITAL = "digital"
+    CLOCK = "clock"
+    RESET = "reset"
+    OTHER = "other"
+
+
+class NetType(str, Enum):
+    """
+    Enumeration of net electrical types and functions.
+
+    This enum defines the electrical characteristics and signal types
+    for nets in the netlist. Each type represents a different electrical
+    function and usage pattern.
+
+    Attributes:
+        POWER: Net provides power supply voltage
+        GROUND: Net provides ground reference
+        SIGNAL: Net carries general purpose signals
+        CLOCK: Net carries clock signals
+        ANALOG: Net carries analog signals
+        DIGITAL: Net carries digital signals
+        DATA: Net carries data signals
+        CONTROL: Net carries control signals
+        OTHER: Net type that doesn't fit standard categories
+    """
+
+    POWER = "power"
+    GROUND = "ground"
+    SIGNAL = "signal"
+    CLOCK = "clock"
+    ANALOG = "analog"
+    DIGITAL = "digital"
+    DATA = "data"
+    CONTROL = "control"
+    OTHER = "other"
 
 
 class ComponentType(str, Enum):
@@ -111,16 +153,11 @@ class Pin(BaseModel):
     model_config = {
         "json_schema_extra": {
             "examples": [
-                {"number": "1", "name": "VCC", "type": "power", "direction": "power"},
-                {"number": "2", "name": "GND", "type": "ground", "direction": "ground"},
-                {"number": "3", "name": "CLK", "type": "input", "direction": "input"},
-                {
-                    "number": "4",
-                    "name": "DATA",
-                    "type": "output",
-                    "direction": "output",
-                },
-                {"number": "5", "direction": "passive"},
+                {"number": "1", "name": "VCC", "type": "power"},
+                {"number": "2", "name": "GND", "type": "ground"},
+                {"number": "3", "name": "CLK", "type": "clock"},
+                {"number": "4", "name": "DATA", "type": "bidirectional"},
+                {"number": "5", "type": "passive"},
             ]
         }
     }
@@ -135,15 +172,22 @@ class Pin(BaseModel):
         description="Optional pin name (e.g., 'VCC', 'GND', 'CLK')",
         examples=["VCC", "GND", "CLK", "RESET", "DATA"],
     )
-    type: constr(strip_whitespace=True) | None = Field(
+    type: PinType | None = Field(
         default=None,
-        description="Pin type classification (e.g., 'power', 'input', 'output')",
-        examples=["power", "ground", "input", "output", "bidirectional"],
-    )
-    direction: PinDirection | None = Field(
-        default=None,
-        description="Electrical direction and function of the pin",
-        examples=["input", "output", "bidirectional", "power", "ground", "passive"],
+        description="Pin electrical type and function",
+        examples=[
+            "input",
+            "output",
+            "bidirectional",
+            "power",
+            "ground",
+            "passive",
+            "analog",
+            "digital",
+            "clock",
+            "reset",
+            "other",
+        ],
     )
 
 
@@ -176,9 +220,9 @@ class Component(BaseModel):
             name="U1",
             type=ComponentType.IC,
             pins=[
-                Pin(number="1", name="VCC", type="power", direction=PinDirection.POWER),
-                Pin(number="2", name="GND", type="power", direction=PinDirection.GROUND),
-                Pin(number="3", name="CLK", type="input", direction=PinDirection.INPUT)
+                Pin(number="1", name="VCC", type=PinType.POWER),
+                Pin(number="2", name="GND", type=PinType.GROUND),
+                Pin(number="3", name="CLK", type=PinType.CLOCK)
             ],
             value="3.3V",
             package="QFP-32",
@@ -190,7 +234,7 @@ class Component(BaseModel):
         resistor = Component(
             name="R1",
             type=ComponentType.RESISTOR,
-            pins=[Pin(number="1", direction=PinDirection.PASSIVE), Pin(number="2", direction=PinDirection.PASSIVE)],
+            pins=[Pin(number="1", type=PinType.PASSIVE), Pin(number="2", type=PinType.PASSIVE)],
             value="10kΩ",
         )
         ```
@@ -207,19 +251,16 @@ class Component(BaseModel):
                             "number": "1",
                             "name": "VCC",
                             "type": "power",
-                            "direction": "power",
                         },
                         {
                             "number": "2",
                             "name": "GND",
                             "type": "ground",
-                            "direction": "ground",
                         },
                         {
                             "number": "3",
                             "name": "CLK",
-                            "type": "input",
-                            "direction": "input",
+                            "type": "clock",
                         },
                     ],
                     "value": "3.3V",
@@ -362,10 +403,20 @@ class Net(BaseModel):
         description="List of component pins connected to this net",
         examples=[[{"component": "U1", "pin": "1"}, {"component": "R1", "pin": "1"}]],
     )
-    net_type: constr(strip_whitespace=True) | None = Field(
+    net_type: NetType | None = Field(
         default=None,
         description="Type of net (e.g., 'power', 'signal', 'ground')",
-        examples=["power", "ground", "signal", "clock", "analog"],
+        examples=[
+            "power",
+            "ground",
+            "signal",
+            "clock",
+            "analog",
+            "digital",
+            "data",
+            "control",
+            "other",
+        ],
     )
 
 
@@ -458,19 +509,16 @@ class Netlist(BaseModel):
                                         "number": "1",
                                         "name": "VIN",
                                         "type": "input",
-                                        "direction": "input",
                                     },
                                     {
                                         "number": "2",
                                         "name": "VOUT",
                                         "type": "output",
-                                        "direction": "output",
                                     },
                                     {
                                         "number": "3",
                                         "name": "GND",
                                         "type": "ground",
-                                        "direction": "ground",
                                     },
                                 ],
                                 "value": "5V",
