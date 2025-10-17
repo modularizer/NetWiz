@@ -115,7 +115,7 @@ netwiz-backend              # Start the FastAPI server
 netwiz-dev                  # Start development server
 
 # Development Tools
-netwiz-generate-openapi     # Generate OpenAPI schema
+netwiz-generate-openapi     # Generate and enhance OpenAPI schema
 netwiz-sync-metadata        # Sync metadata from __init__.py and requirements.txt to pyproject.toml
 netwiz-check-metadata       # Check if metadata is in sync
 

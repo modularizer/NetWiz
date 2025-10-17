@@ -1,24 +1,30 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, constr
+
+# Response Models
 
 
 class ErrorResponse(BaseModel):
     """Standard error response model"""
 
-    error: str = Field(..., description="Error type")
-    message: str = Field(..., description="Human-readable error message")
+    error: constr(strip_whitespace=True) = Field(..., description="Error type")
+    message: constr(strip_whitespace=True) = Field(
+        ..., description="Human-readable error message"
+    )
     details: dict[str, Any] | None = Field(None, description="Additional error details")
 
 
 class HealthResponse(BaseModel):
     """Health check response model"""
 
-    status: str = Field(..., description="Service status")
+    status: constr(strip_whitespace=True) = Field(..., description="Service status")
     timestamp: datetime = Field(..., description="Current timestamp")
-    version: str = Field(..., description="API version")
-    environment: str = Field(..., description="Environment (development/production)")
+    version: constr(strip_whitespace=True) = Field(..., description="API version")
+    environment: constr(strip_whitespace=True) = Field(
+        ..., description="Environment (development/production)"
+    )
 
 
 # Query Parameters

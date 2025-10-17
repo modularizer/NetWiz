@@ -1,47 +1,184 @@
+"""
+Core validation logic for PCB netlists.
+
+This module provides comprehensive validation capabilities for netlist data,
+ensuring circuit integrity and adherence to electrical design rules. The
+validation system is designed to catch common design errors and provide
+actionable feedback to designers.
+
+Key Features:
+- **Rule-based validation**: Configurable validation rules for different design requirements
+- **Comprehensive checks**: Covers connectivity, naming, and electrical constraints
+- **Detailed reporting**: Provides specific error locations and suggestions
+- **Extensible**: Easy to add new validation rules for specific applications
+
+Validation Rules:
+1. **Naming Rules**: Component and net IDs must be non-empty and unique
+2. **Connectivity Rules**: All nets must have connections, components should be connected
+3. **Electrical Rules**: Power/ground nets should have proper connectivity
+4. **Design Rules**: Custom rules for specific design requirements
+
+Example:
+    ```python
+    from netwiz_backend.netlist.core.validation import validate_netlist_internal
+    from netwiz_backend.netlist.core.models import Netlist, Component, Net
+
+    # Validate a netlist
+    result = validate_netlist_internal(my_netlist)
+
+    if result.is_valid:
+        print("✅ Netlist is valid!")
+    else:
+        print("❌ Validation errors found:")
+        for error in result.errors:
+            print(f"  - {error.message}")
+    ```
+"""
+
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conlist, constr
 
 
 class ValidationError(BaseModel):
-    """Represents a validation error"""
+    """
+    Represents a validation error or warning.
 
-    error_type: str = Field(..., description="Type of validation error")
-    message: str = Field(..., description="Human-readable error message")
-    component_id: str | None = Field(
+    ValidationError captures detailed information about issues found during
+    netlist validation. Each error includes the type, message, location,
+    and severity level to help designers understand and fix problems.
+
+    Attributes:
+        error_type: Category of validation error (e.g., "blank_component_name")
+        message: Human-readable description of the problem
+        component_id: Optional component ID if error is component-specific
+        net_id: Optional net ID if error is net-specific
+        severity: Error severity level ("error" or "warning")
+
+    Example:
+        ```python
+        error = ValidationError(
+            error_type="duplicate_component_id",
+            message="Component IDs must be unique",
+            component_id="U1",
+            severity="error"
+        )
+        ```
+    """
+
+    error_type: constr(strip_whitespace=True) = Field(
+        ..., description="Type of validation error"
+    )
+    message: constr(strip_whitespace=True) = Field(
+        ..., description="Human-readable error message"
+    )
+    component_id: constr(strip_whitespace=True) | None = Field(
         default=None, description="Component ID if error is component-specific"
     )
-    net_id: str | None = Field(
+    net_id: constr(strip_whitespace=True) | None = Field(
         default=None, description="Net ID if error is net-specific"
     )
-    severity: str = Field(default="error", description="Error severity level")
+    severity: constr(strip_whitespace=True) = Field(
+        default="error", description="Error severity level"
+    )
 
 
 class ValidationResult(BaseModel):
-    """Result of netlist validation"""
+    """
+    Result of netlist validation containing errors, warnings, and metadata.
+
+    ValidationResult provides a comprehensive summary of the validation process,
+    including all issues found, the validation timestamp, and which rules were
+    applied. This allows for detailed reporting and audit trails.
+
+    Attributes:
+        is_valid: True if no errors were found (warnings are allowed)
+        errors: List of validation errors that must be fixed
+        warnings: List of validation warnings that should be reviewed
+        validation_timestamp: When the validation was performed
+        validation_rules_applied: List of validation rules that were checked
+
+    Example:
+        ```python
+        result = ValidationResult(
+            is_valid=False,
+            errors=[
+                ValidationError(
+                    error_type="duplicate_component_id",
+                    message="Component IDs must be unique",
+                    severity="error"
+                )
+            ],
+            warnings=[
+                ValidationError(
+                    error_type="unconnected_component",
+                    message="Component is not connected to any net",
+                    component_id="R5",
+                    severity="warning"
+                )
+            ],
+            validation_rules_applied=["unique_component_ids", "connectivity_check"]
+        )
+        ```
+    """
 
     is_valid: bool = Field(..., description="Whether the netlist passed validation")
-    errors: list[ValidationError] = Field(
+    errors: conlist(ValidationError) = Field(
         default_factory=list, description="List of validation errors"
     )
-    warnings: list[ValidationError] = Field(
+    warnings: conlist(ValidationError) = Field(
         default_factory=list, description="List of validation warnings"
     )
     validation_timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="When validation was performed",
     )
-    validation_rules_applied: list[str] = Field(
+    validation_rules_applied: conlist(constr(strip_whitespace=True)) = Field(
         default_factory=list, description="List of validation rules that were applied"
     )
 
 
 def validate_netlist_internal(netlist) -> ValidationResult:
     """
-    Internal validation function
+    Perform comprehensive validation of a netlist according to design rules.
 
-    Performs comprehensive validation of a netlist according to business rules.
-    This function is used by both the upload and validate endpoints.
+    This function implements the core validation logic for netlist data,
+    checking for common design errors and electrical constraints. It applies
+    a comprehensive set of validation rules and returns detailed results.
+
+    Validation Rules Applied:
+    1. **Blank Names**: Component and net IDs cannot be empty or whitespace-only
+    2. **Unique IDs**: All component IDs must be unique within the netlist
+    3. **Unique Nets**: All net IDs must be unique within the netlist
+    4. **GND Connectivity**: Ground nets should have multiple connections
+    5. **Orphaned Nets**: All nets must have at least one connection
+    6. **Unconnected Components**: Components should be connected to nets
+
+    Args:
+        netlist: The Netlist object to validate
+
+    Returns:
+        ValidationResult: Comprehensive validation results including errors,
+                         warnings, and metadata about the validation process
+
+    Example:
+        ```python
+        from netwiz_backend.netlist.core.models import Netlist
+        from netwiz_backend.netlist.core.validation import validate_netlist_internal
+
+        # Validate a netlist
+        result = validate_netlist_internal(my_netlist)
+
+        if not result.is_valid:
+            print(f"Found {len(result.errors)} errors:")
+            for error in result.errors:
+                print(f"  - {error.message}")
+
+        if result.warnings:
+            print(f"Found {len(result.warnings)} warnings:")
+            for warning in result.warnings:
+                print(f"  - {warning.message}")
+        ```
     """
     errors = []
     warnings = []

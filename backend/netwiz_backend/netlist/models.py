@@ -9,7 +9,7 @@ These models define the data structures for:
 
 from datetime import datetime, timezone
 
-from pydantic import BaseModel, Field
+from pydantic import UUID4, BaseModel, Field, constr
 
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation import ValidationResult
@@ -18,9 +18,9 @@ from netwiz_backend.netlist.core.validation import ValidationResult
 class NetlistSubmission(BaseModel):
     """Represents a netlist submission with metadata"""
 
-    id: str = Field(..., description="Unique submission ID")
+    id: UUID4 = Field(..., description="Unique submission ID")
     netlist: Netlist = Field(..., description="The netlist data")
-    user_id: str | None = Field(None, description="User who submitted the netlist")
+    user_id: UUID4 | None = Field(None, description="User who submitted the netlist")
     submission_timestamp: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="When the netlist was submitted",
@@ -28,7 +28,7 @@ class NetlistSubmission(BaseModel):
     validation_result: ValidationResult | None = Field(
         None, description="Validation result for this submission"
     )
-    filename: str | None = Field(
+    filename: constr(strip_whitespace=True) | None = Field(
         None, description="Original filename if uploaded from file"
     )
 
@@ -52,8 +52,8 @@ class NetlistUploadRequest(BaseModel):
     """Request model for uploading a netlist"""
 
     netlist: Netlist = Field(..., description="The netlist data to upload")
-    user_id: str | None = Field(None, description="User ID for tracking submissions")
-    filename: str | None = Field(
+    user_id: UUID4 | None = Field(None, description="User ID for tracking submissions")
+    filename: constr(strip_whitespace=True) | None = Field(
         None, description="Original filename if uploaded from file"
     )
 
@@ -61,8 +61,8 @@ class NetlistUploadRequest(BaseModel):
 class NetlistUploadResponse(BaseModel):
     """Response model for netlist upload"""
 
-    submission_id: str = Field(..., description="Unique ID for this submission")
-    message: str = Field(..., description="Success message")
+    submission_id: UUID4 = Field(..., description="Unique ID for this submission")
+    message: constr(strip_whitespace=True) = Field(..., description="Success message")
     validation_result: ValidationResult = Field(
         ..., description="Validation result for the uploaded netlist"
     )

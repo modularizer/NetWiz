@@ -12,6 +12,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from motor.core import AgnosticDatabase
+from pydantic import UUID4
 
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
@@ -118,7 +119,7 @@ async def get_netlist(
 async def list_netlists(
     pagination: PaginationParams = Depends(get_pagination_params),
     database: AgnosticDatabase = Depends(get_database),
-    user_id: str | None = Query(None, description="Filter by user ID"),
+    user_id: UUID4 | None = Query(default=None, description="Filter by user ID"),
 ):
     """
     List netlist submissions with pagination
