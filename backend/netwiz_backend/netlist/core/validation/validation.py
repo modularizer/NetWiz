@@ -125,7 +125,7 @@ def validate_netlist(
 
     errors = []
     warnings = []
-    applied_rules = [*preapplied_rules]
+    validation_rules_applied = [*preapplied_rules]
 
     # Initialize all validation rules
     validation_rules = [
@@ -143,11 +143,11 @@ def validate_netlist(
 
     # Run all validation rules
     for rule in validation_rules:
-        rule.check(netlist, applied_rules, errors, warnings, get_location)
+        rule.check(netlist, validation_rules_applied, errors, warnings, get_location)
 
     return ValidationResult(
         is_valid=len(errors) == 0,
         errors=errors,
         warnings=warnings,
-        applied_rules=applied_rules,
+        validation_rules_applied=validation_rules_applied,
     )

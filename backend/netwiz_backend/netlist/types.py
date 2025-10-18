@@ -19,14 +19,14 @@ class ValidationHTTPError(HTTPException):
 
     Args:
         validation_errors: List of ValidationError objects (auto-separated by severity)
-        applied_rules: Optional list of applied ValidationErrorType rules
+        validation_rules_applied: Optional list of applied ValidationErrorType rules
         status_code: HTTP status code (default: 422)
     """
 
     def __init__(
         self,
         validation_errors: list[ValidationError],
-        applied_rules: list[ValidationErrorType] | None = None,
+        validation_rules_applied: list[ValidationErrorType] | None = None,
         status_code: int = 422,
     ):
         # Auto-separate validation_errors into errors and warnings based on severity
@@ -37,7 +37,7 @@ class ValidationHTTPError(HTTPException):
             is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
-            validation_rules_applied=applied_rules or [],
+            validation_rules_applied=validation_rules_applied or [],
         )
 
         super().__init__(

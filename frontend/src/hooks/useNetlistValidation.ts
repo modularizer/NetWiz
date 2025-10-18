@@ -38,7 +38,10 @@ export const useJsonValidation = () => {
           is_valid: false,
           errors: [{
             message: error.message || 'JSON validation failed',
-            error_type: 'validation_error',
+            error_type: {
+              name: 'validation_error',
+              description: 'An unhandled validation error occurred'
+            },
             severity: 'error',
             location: null
           }],
@@ -97,7 +100,10 @@ export const useNetlistValidation = () => {
           is_valid: false,
           errors: [{
             message: error.message || 'Validation failed',
-            error_type: 'validation_error',
+            error_type: {
+              name: 'validation_error',
+              description: 'An unhandled validation error occurred'
+            },
             severity: 'error',
             location: null
           }],

@@ -28,9 +28,6 @@ const NetlistPage: React.FC = () => {
 
   // Sync hook validation result with local state
   useEffect(() => {
-    console.log('Hook validation result changed:', hookValidationResult, hookValidationResult?.errors)
-    console.log('Hook validation result type:', typeof hookValidationResult)
-    console.log('Hook validation result keys:', hookValidationResult ? Object.keys(hookValidationResult) : 'null')
     if (hookValidationResult) {
       setValidationResult(hookValidationResult)
     }
@@ -127,7 +124,10 @@ const NetlistPage: React.FC = () => {
         is_valid: false,
         errors: [{
           message: 'Unhandled exception',
-          error_type: 'validation_error',
+          error_type: {
+            name: 'validation_error',
+            description: 'An unhandled validation error occurred'
+          },
           severity: 'error',
           location: null
         }],

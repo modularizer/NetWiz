@@ -8,9 +8,11 @@
  * - Validation statistics
  */
 
-import React from 'react'
-import { AlertCircle, CheckCircle, AlertTriangle, Info, MapPin } from 'lucide-react'
-import type { ValidationResult } from '@/types/netlist'
+import React, { useState } from 'react'
+import { AlertCircle, CheckCircle, AlertTriangle, Info, MapPin, HelpCircle } from 'lucide-react'
+import type { ValidationResult, ValidationErrorType } from '@/types/netlist'
+import RulesModal from './RulesModal'
+import RuleDescriptionModal from './RuleDescriptionModal'
 
 interface ValidationPanelProps {
   validationResult: ValidationResult | null
@@ -18,9 +20,14 @@ interface ValidationPanelProps {
 }
 
 const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onNavigateToError }) => {
-  console.log('ValidationPanel received:', validationResult)
-  console.log('ValidationPanel type:', typeof validationResult)
-  console.log('ValidationPanel keys:', validationResult ? Object.keys(validationResult) : 'null')
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false)
+  const [isRuleDescriptionModalOpen, setIsRuleDescriptionModalOpen] = useState(false)
+  const [selectedRule, setSelectedRule] = useState<ValidationErrorType | null>(null)
+
+  const handleRuleDescriptionClick = (rule: ValidationErrorType) => {
+    setSelectedRule(rule)
+    setIsRuleDescriptionModalOpen(true)
+  }
 
   if (!validationResult) {
     return (
@@ -66,7 +73,13 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
             <div className="text-gray-500">Warnings</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary-600">{validation_rules_applied?.length || 0}</div>
+            <div
+              className="text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
+              onClick={() => setIsRulesModalOpen(true)}
+              title="Click to view rule descriptions"
+            >
+              {validation_rules_applied?.length || 0}
+            </div>
             <div className="text-gray-500">Rules Applied</div>
           </div>
         </div>
@@ -103,7 +116,17 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{error.message}</p>
                       <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                        <span className="badge-error">{error.error_type}</span>
+                        <span className="badge-error">{error.error_type.name}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRuleDescriptionClick(error.error_type)
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="View rule description"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                        </button>
                         {hasLocation && (
                           <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
                             <MapPin className="w-3 h-3" />
@@ -150,7 +173,17 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{warning.message}</p>
                       <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                        <span className="badge-warning">{warning.error_type}</span>
+                        <span className="badge-warning">{warning.error_type.name}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRuleDescriptionClick(warning.error_type)
+                          }}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="View rule description"
+                        >
+                          <HelpCircle className="w-3 h-3" />
+                        </button>
                         {hasLocation && (
                           <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
                             <MapPin className="w-3 h-3" />
@@ -206,14 +239,32 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
           <div className="p-4">
             <div className="flex flex-wrap gap-2">
               {validation_rules_applied.map((rule, index) => (
-                <span key={index} className="badge-info text-xs">
-                  {rule}
+                <span
+                  key={index}
+                  className="badge-info text-xs cursor-pointer hover:bg-blue-600 transition-colors"
+                  title={rule.description}
+                >
+                  {rule.name}
                 </span>
               ))}
             </div>
           </div>
         </div>
       )}
+
+      {/* Rules Modal */}
+      <RulesModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
+        rules={validation_rules_applied || []}
+      />
+
+      {/* Rule Description Modal */}
+      <RuleDescriptionModal
+        isOpen={isRuleDescriptionModalOpen}
+        onClose={() => setIsRuleDescriptionModalOpen(false)}
+        rule={selectedRule}
+      />
     </div>
   )
 }

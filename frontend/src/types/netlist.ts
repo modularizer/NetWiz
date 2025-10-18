@@ -18,9 +18,15 @@ export interface LocationInfo {
   end_line_character_number: number
 }
 
+// ValidationErrorType type that matches the backend ValidationErrorType model
+export interface ValidationErrorType {
+  name: string
+  description: string
+}
+
 // Custom ValidationError type that matches our backend model
 export interface ValidationError {
-  error_type: string
+  error_type: ValidationErrorType
   message: string
   component_id?: string | null
   net_id?: string | null
@@ -34,7 +40,7 @@ export interface ValidationResult {
   errors: ValidationError[]
   warnings: ValidationError[]
   validation_timestamp: string
-  validation_rules_applied: string[]
+  validation_rules_applied: ValidationErrorType[]
   auto_fill_suggestions?: Array<{
     net_name: string
     suggested_type: string

@@ -19,15 +19,15 @@ def validate_basic_format(
     json_text: str
 ) -> tuple[TrackedNetlist | None, ValidationResult | None]:
     """Get ValidationRequest with custom pre-validation"""
-    applied_rules = []
+    validation_rules_applied = []
 
     # step 1: check if valid json
-    tracked_json, vr = check_is_valid_json(json_text, applied_rules)
+    tracked_json, vr = check_is_valid_json(json_text, validation_rules_applied)
     if vr is not None:
         return None, vr
 
     # step 2: check basic structure
-    tracked_netlist, vr = check_basic_format(tracked_json, applied_rules)
+    tracked_netlist, vr = check_basic_format(tracked_json, validation_rules_applied)
     if vr is not None:
         return None, vr
 
@@ -36,12 +36,12 @@ def validate_basic_format(
 
 
 def check_is_valid_json(
-    json_text: str, applied_rules: list
+    json_text: str, validation_rules_applied: list
 ) -> tuple[TrackedJson | None, ValidationResult | None]:
     """Get ValidationRequest with custom pre-validation"""
     # Step 1: Parse JSON using TrackedJson (primary and only JSON parser)
     try:
-        applied_rules.append(ValidationErrorType.INVALID_JSON)
+        validation_rules_applied.append(ValidationErrorType.INVALID_JSON)
         tracked_json = TrackedJson.loads(json_text, raise_on_error=True)
     except TrackedJSONDecodeError as e:
         # JSON syntax error - TrackedJson provides detailed location info
@@ -54,7 +54,7 @@ def check_is_valid_json(
                     location=e.error_loc,
                 )
             ],
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
     except Exception as e:
         # Unexpected error during JSON parsing
@@ -67,7 +67,7 @@ def check_is_valid_json(
                     location=None,
                 )
             ],
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
 
     # Step 2: Check if data is a dict
@@ -81,16 +81,16 @@ def check_is_valid_json(
                     location=None,
                 )
             ],
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
     return tracked_json, None
 
 
 def check_basic_format(
-    tracked_json: TrackedJson, applied_rules: list
+    tracked_json: TrackedJson, validation_rules_applied: list
 ) -> tuple[TrackedNetlist | None, ValidationResult | None]:
-    applied_rules.append(ValidationErrorType.INVALID_FORMAT)
-    applied_rules.append(ValidationErrorType.MISSING_FIELD)
+    validation_rules_applied.append(ValidationErrorType.INVALID_FORMAT)
+    validation_rules_applied.append(ValidationErrorType.MISSING_FIELD)
     missing_field_validation_errors = []
     for f in ["components", "nets"]:
         if f not in tracked_json:
@@ -106,7 +106,7 @@ def check_basic_format(
         return None, ValidationResult(
             is_valid=False,
             errors=missing_field_validation_errors,
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
 
     try:
@@ -117,7 +117,7 @@ def check_basic_format(
         return None, ValidationResult(
             is_valid=False,
             errors=validation_errors,
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
     return netlist, None
 

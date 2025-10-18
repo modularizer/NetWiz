@@ -43,8 +43,8 @@ class RuleCheckABC(ABC):
         Initialize the rule check.
 
         Args:
-            error_type: The ValidationErrorType for this rule
-            description: Human-readable description of the rule
+            error_types: The ValidationErrorType objects for this rule
+            description: Human-readable description of the rule (deprecated - use error_types descriptions)
         """
         self.error_types = error_types
         self.description = description
@@ -52,7 +52,7 @@ class RuleCheckABC(ABC):
     def check(
         self,
         netlist: Netlist,
-        applied_rules: list[ValidationErrorType] | None = None,
+        validation_rules_applied: list[ValidationErrorType] | None = None,
         errors: list[ValidationError] | None = None,
         warnings: list[ValidationError] | None = None,
         get_location: Callable[[str], LocationInfo | None] | None = None,
@@ -66,7 +66,7 @@ class RuleCheckABC(ABC):
 
         Args:
             netlist: The netlist to validate
-            applied_rules: Optional list to append this rule's error_type to (for legacy compatibility)
+            validation_rules_applied: Optional list to append this rule's error_type to (for legacy compatibility)
             errors: Optional list to append error ValidationError objects to (for legacy compatibility)
             warnings: Optional list to append warning ValidationError objects to (for legacy compatibility)
             get_location: Optional function to get location info for error positioning
@@ -74,23 +74,27 @@ class RuleCheckABC(ABC):
         Returns:
             ValidationResult: Complete validation result for this rule
         """
-        applied_rules = applied_rules if applied_rules is not None else []
+        validation_rules_applied = (
+            validation_rules_applied if validation_rules_applied is not None else []
+        )
         errors = errors if errors is not None else []
         warnings = warnings if warnings is not None else []
         get_location = get_location or (lambda x: None)
 
         # mark the rule as applied
-        applied_rules.extend([t for t in self.error_types if t not in applied_rules])
+        validation_rules_applied.extend(
+            [t for t in self.error_types if t not in validation_rules_applied]
+        )
 
         # we are taking advantage of the mutability of the lists
         self._check(netlist, errors, warnings, get_location)
 
         return ValidationResult(
-            is_valid=len(applied_rules) == 0,
+            is_valid=len(errors) == 0,
             errors=errors,
             warnings=warnings,
             validation_timestamp=datetime.now(timezone.utc),
-            applied_rules=applied_rules,
+            validation_rules_applied=validation_rules_applied,
         )
 
     @abstractmethod
@@ -105,10 +109,10 @@ class RuleCheckABC(ABC):
 
     def __str__(self) -> str:
         """Return string representation of the rule."""
-        error_types_str = ", ".join([et.value for et in self.error_types])
+        error_types_str = ", ".join([et.name for et in self.error_types])
         return f"{self.__class__.__name__}({error_types_str}): {self.description}"
 
     def __repr__(self) -> str:
         """Return detailed string representation of the rule."""
-        error_types_str = ", ".join([et.value for et in self.error_types])
+        error_types_str = ", ".join([et.name for et in self.error_types])
         return f"{self.__class__.__name__}(error_types=({error_types_str}), description='{self.description}')"
