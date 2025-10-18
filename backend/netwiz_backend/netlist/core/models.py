@@ -42,9 +42,11 @@ Example:
 """
 
 from enum import Enum
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, conlist, constr, field_validator
+
+from netwiz_backend.json_tracker import TrackedJson
 
 
 class PinType(str, Enum):
@@ -588,3 +590,12 @@ class Netlist(BaseModel):
         if len(names) != len(set(names)):
             raise ValueError("Net names must be unique")
         return v
+
+
+class TrackedNetlist(Netlist):
+    model_config: ClassVar[dict] = {"arbitrary_types_allowed": True}
+
+    tracked_json: TrackedJson | None = Field(
+        default=None,
+        description="Optional information about the positions in the json text, to help localize errors",
+    )

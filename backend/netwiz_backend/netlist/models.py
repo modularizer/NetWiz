@@ -85,3 +85,14 @@ class NetlistListResponse(BaseModel):
     total_count: int = Field(..., description="Total number of submissions")
     page: int = Field(..., description="Current page number")
     page_size: int = Field(..., description="Number of items per page")
+
+
+class NetlistEndpoints(BaseModel):
+    """Netlist endpoints information"""
+
+    upload: constr(strip_whitespace=True) = Field(..., description="Upload endpoint")
+    list: constr(strip_whitespace=True) = Field(..., description="List endpoint")
+    get: constr(strip_whitespace=True) = Field(..., description="Get endpoint")
+    validate: constr(strip_whitespace=True) = Field(
+        ..., description="Validate endpoint"
+    )

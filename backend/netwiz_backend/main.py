@@ -1,105 +1,90 @@
-"""
-FastAPI application for PCB Netlist Visualizer + Validator
-"""
+# netwiz_backend/main.py
+from __future__ import annotations
 
 import uvicorn
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-# Import app metadata and configuration
 from netwiz_backend.config import settings
 from netwiz_backend.database import close_database, init_database
 from netwiz_backend.models import ErrorResponse
-from netwiz_backend.netlist import netlist_router
-from netwiz_backend.system import router as system_router
-
-# Load environment variables
-load_dotenv()
-
-# Initialize database (will be called in startup event)
-
-# Create FastAPI app using metadata from __init__.py via settings
-app = FastAPI(
-    title=settings.app_name,
-    description=settings.app_description,
-    version=settings.app_version,
-    docs_url=settings.docs_url,
-    redoc_url=settings.redoc_url,
-    debug=settings.debug,
-    # OpenAPI configuration
-    openapi_url="/openapi.json",
-    openapi_tags=[
-        {
-            "name": "netlist",
-            "description": "Operations with netlists. Upload, validate, and manage PCB netlist data.",
-        },
-        {
-            "name": "health",
-            "description": "Health check endpoints for monitoring service status.",
-        },
-    ],
-)
-
-# Add CORS middleware using settings
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include API routes
-app.include_router(netlist_router)
-app.include_router(system_router)
+from netwiz_backend.netlist.controller import NetlistController
+from netwiz_backend.system.controller import SystemController
 
 
-# Database lifecycle events
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    await init_database()
+class NetwizApp:
+    """Top-level FastAPI application manager (static/class methods where sensible)."""
 
+    # ── construction ───────────────────────────────────────────────────────────
+    def __init__(self) -> None:
+        self.app = self._create_app()
+        self._configure_middleware()
+        self._register_controllers()
+        self._register_lifecycle()
+        self._register_exception_handlers()
+        self._register_openapi_endpoint()
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database on shutdown"""
-    await close_database()
-
-
-# Root endpoint is now handled by system_router
-
-
-# OpenAPI schema generation endpoint
-@app.get("/openapi.json")
-async def get_openapi_schema():
-    """
-    Get the OpenAPI schema as JSON
-
-    This endpoint returns the complete OpenAPI 3.0 specification for the API,
-    including all endpoints, request/response models, and validation rules.
-    """
-    return app.openapi()
-
-
-# Note: OpenAPI schema generation is handled by the netwiz-generate-openapi script
-
-
-# Global exception handlers
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Handle HTTP exceptions with consistent error format"""
-    # Check if this is our custom validation response
-    if isinstance(exc.detail, dict) and "validation_result" in exc.detail:
-        # Return our custom validation response directly
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=exc.detail,
+    @staticmethod
+    def _create_app() -> FastAPI:
+        return FastAPI(
+            title=settings.app_name,
+            description=settings.app_description,
+            version=settings.app_version,
+            docs_url=settings.docs_url,
+            redoc_url=settings.redoc_url,
+            debug=settings.debug,
+            openapi_url="/openapi.json",
+            openapi_tags=[
+                {"name": "netlist", "description": "Manage PCB netlists"},
+                {"name": "health", "description": "System and health endpoints"},
+            ],
         )
-    else:
-        # Handle regular HTTP exceptions
+
+    def _configure_middleware(self) -> None:
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=settings.cors_origins,
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+    def _register_controllers(self) -> None:
+        netlist_controller = NetlistController(prefix="/netlist").register(self.app)
+        SystemController(prefix="", netlist_controller=netlist_controller).register(
+            self.app
+        )
+
+    def _register_lifecycle(self) -> None:
+        # static: they don’t depend on instance state
+        self.app.add_event_handler("startup", NetwizApp.on_startup)
+        self.app.add_event_handler("shutdown", NetwizApp.on_shutdown)
+
+    def _register_exception_handlers(self) -> None:
+        # static: don’t depend on instance state
+        self.app.add_exception_handler(HTTPException, NetwizApp.http_exception_handler)
+        self.app.add_exception_handler(Exception, NetwizApp.general_exception_handler)
+
+    def _register_openapi_endpoint(self) -> None:
+        self.app.get("/openapi.json")(self.app.openapi)
+
+    # ── lifecycle (static) ─────────────────────────────────────────────────────
+    @staticmethod
+    async def on_startup() -> None:
+        await init_database()
+
+    @staticmethod
+    async def on_shutdown() -> None:
+        await close_database()
+
+    # ── exception handlers (static) ────────────────────────────────────────────
+    @staticmethod
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
+        if isinstance(exc.detail, dict) and "validation_result" in exc.detail:
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
         return JSONResponse(
             status_code=exc.status_code,
             content=ErrorResponse(
@@ -109,28 +94,40 @@ async def http_exception_handler(request, exc):
             ).model_dump(),
         )
 
+    @staticmethod
+    async def general_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse(
+                error="internal_server_error",
+                message="An internal server error occurred",
+                details={"exception": str(exc)},
+            ).model_dump(),
+        )
 
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """Handle general exceptions with consistent error format"""
-    return JSONResponse(
-        status_code=500,
-        content=ErrorResponse(
-            error="internal_server_error",
-            message="An internal server error occurred",
-            details={"exception": str(exc)},
-        ).model_dump(),
-    )
+    # ── public factories/runners (class methods) ───────────────────────────────
+    @classmethod
+    def get_app(cls) -> FastAPI:
+        return cls().app
+
+    @classmethod
+    def run(cls) -> None:
+        uvicorn.run(
+            "netwiz_backend.main:app",  # or "netwiz_backend.main:NetwizApp.get_app"
+            host=settings.host,
+            port=settings.port,
+            reload=settings.reload,
+        )
+
+
+# ASGI entrypoint
+app: FastAPI = NetwizApp.get_app()
 
 
 def main():
-    """Main entry point for the application"""
-    uvicorn.run(
-        "netwiz_backend.main:app",
-        host=settings.host,
-        port=settings.port,
-        reload=settings.reload,
-    )
+    NetwizApp.run()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, constr
@@ -15,17 +14,6 @@ class ErrorResponse(BaseModel):
     )
     details: dict[str, Any] | None = Field(
         default=None, description="Additional error details"
-    )
-
-
-class HealthResponse(BaseModel):
-    """Health check response model"""
-
-    status: constr(strip_whitespace=True) = Field(..., description="Service status")
-    timestamp: datetime = Field(..., description="Current timestamp")
-    version: constr(strip_whitespace=True) = Field(..., description="API version")
-    environment: constr(strip_whitespace=True) = Field(
-        ..., description="Environment (development/production)"
     )
 
 
