@@ -277,6 +277,8 @@ ignore = [
     "ARG003",
     "ARG004",
     "ARG005",
+    "RUF003",
+    "RUF015"
 ]
 fixable = [
     "ALL",

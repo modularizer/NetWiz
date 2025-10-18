@@ -1,0 +1,6 @@
+{
+  "nullish": null,
+  "numbers": [0, -1, 2.5, 1e3],
+  "bools": [true, false],
+  "obj": { "k": { "inner": "v" } }
+}

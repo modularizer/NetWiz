@@ -33,6 +33,18 @@ const NetlistPage: React.FC = () => {
     }
   }, [hookValidationResult])
 
+  // Navigation handler for clicking on validation errors
+  const handleNavigateToError = useCallback((lineNumber: number, characterPosition: number) => {
+    console.log('NetlistPage: handleNavigateToError called with:', lineNumber, characterPosition)
+    // Call the Monaco Editor navigation function directly
+    if ((window as any).navigateToJsonError) {
+      console.log('NetlistPage: Calling Monaco navigation function')
+      ;(window as any).navigateToJsonError(lineNumber, characterPosition)
+    } else {
+      console.log('NetlistPage: Monaco navigation function not found')
+    }
+  }, [])
+
   // Handle netlist changes from JSON editor
   const handleNetlistChange = useCallback(async (newNetlist: Netlist) => {
     console.log('Handling netlist change:', newNetlist)
@@ -206,6 +218,7 @@ const NetlistPage: React.FC = () => {
                       value={netlist}
                       onChange={handleNetlistChange}
                       validationResult={validationResult}
+                      onNavigateToError={handleNavigateToError}
                     />
                   </div>
                 </div>
@@ -236,7 +249,10 @@ const NetlistPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex-1 overflow-auto">
-                    <ValidationPanel validationResult={validationResult} />
+                    <ValidationPanel
+                      validationResult={validationResult}
+                      onNavigateToError={handleNavigateToError}
+                    />
                   </div>
                 </div>
               </Panel>
