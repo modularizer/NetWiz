@@ -134,18 +134,17 @@ def parse_netlist_with_locations(json_text: str) -> ParseResult:
         return ParseResult(success=False, error_message=f"Unexpected error: {e!s}")
 
 
-def _create_location_mapping(
-    json_text: str, data: dict[str, Any]
-) -> dict[str, LocationInfo]:
+def _create_location_mapping(json_text: str, data: Any) -> dict[str, LocationInfo]:
     """
     Create a location mapping for JSON elements by analyzing the text.
 
-    This is a simplified approach that finds elements by searching for their
-    values in the JSON text and estimating their positions.
+    This function recursively tracks ALL elements in ANY JSON structure,
+    providing location information for every field at every level.
+    Completely agnostic to structure or field names.
 
     Args:
         json_text: The original JSON text
-        data: The parsed JSON data
+        data: The parsed JSON data (any type)
 
     Returns:
         Dictionary mapping JSON paths to LocationInfo objects
@@ -153,73 +152,97 @@ def _create_location_mapping(
     locations = {}
     lines = json_text.split("\n")
 
-    # Find locations for components
-    if "components" in data and isinstance(data["components"], list):
-        for i, component in enumerate(data["components"]):
-            if isinstance(component, dict):
-                # Find component location
-                component_path = f"components.{i}"
-                component_location = _find_element_in_text(json_text, component, lines)
-                if component_location:
-                    locations[component_path] = component_location
+    def _track_element(element: Any, path: str) -> None:
+        """Recursively track all elements and their locations"""
+        if isinstance(element, dict):
+            # Track the object itself
+            if path:
+                element_location = _find_element_in_text(json_text, element, lines)
+                if element_location:
+                    locations[path] = element_location
 
-                # Find component name location
-                if "name" in component:
-                    name_path = f"components.{i}.name"
-                    name_location = _find_string_in_text(
-                        json_text, component["name"], lines
+            # Track all fields in the object
+            for key, value in element.items():
+                field_path = f"{path}.{key}" if path else key
+                _track_element(value, field_path)
+
+        elif isinstance(element, list):
+            # Track the array itself
+            if path:
+                element_location = _find_element_in_text(json_text, element, lines)
+                if element_location:
+                    locations[path] = element_location
+
+            # Track all items in the array
+            for i, item in enumerate(element):
+                item_path = f"{path}.{i}" if path else str(i)
+                _track_element(item, item_path)
+
+        else:
+            # Track primitive values (strings, numbers, booleans, null)
+            if path:
+                if isinstance(element, str):
+                    value_location = _find_string_in_text(json_text, element, lines)
+                    if value_location:
+                        locations[path] = value_location
+                else:
+                    # For non-string primitives, try to find them by searching for their JSON representation
+                    primitive_location = _find_primitive_in_text(
+                        json_text, element, lines
                     )
-                    if name_location:
-                        locations[name_path] = name_location
+                    if primitive_location:
+                        locations[path] = primitive_location
 
-    # Find locations for nets
-    if "nets" in data and isinstance(data["nets"], list):
-        for i, net in enumerate(data["nets"]):
-            if isinstance(net, dict):
-                # Find net location
-                net_path = f"nets.{i}"
-                net_location = _find_element_in_text(json_text, net, lines)
-                if net_location:
-                    locations[net_path] = net_location
-
-                # Find net name location
-                if "name" in net:
-                    name_path = f"nets.{i}.name"
-                    name_location = _find_string_in_text(json_text, net["name"], lines)
-                    if name_location:
-                        locations[name_path] = name_location
+    # Start tracking from the root
+    _track_element(data, "")
 
     return locations
 
 
 def _find_element_in_text(
-    json_text: str, element: dict[str, Any], lines: list[str]
+    json_text: str, element: Any, lines: list[str]
 ) -> LocationInfo | None:
     """
-    Find the location of a JSON element in the text.
+    Find the location of any JSON element in the text.
 
     Args:
         json_text: The JSON text
-        element: The element to find
+        element: The element to find (any type)
         lines: List of lines in the JSON text
 
     Returns:
         LocationInfo if found, None otherwise
     """
-    # This is a simplified implementation that searches for the element
-    # by looking for its first key-value pair
-    if not element:
-        return None
+    if isinstance(element, dict):
+        # For objects, search for the first key-value pair
+        if not element:
+            return None
+        first_key = next(iter(element.keys()))
+        search_pattern = f'"{first_key}"'
+        match = re.search(search_pattern, json_text)
+        if match:
+            start_pos = match.start()
+            return _position_to_location(start_pos, lines)
 
-    first_key = next(iter(element.keys()))
+    elif isinstance(element, list):
+        # For arrays, search for the opening bracket
+        if not element:
+            return None
+        # Find the first non-whitespace character of the array
+        # This is a simplified approach - we'll search for the opening bracket
+        search_pattern = r"\["
+        match = re.search(search_pattern, json_text)
+        if match:
+            start_pos = match.start()
+            return _position_to_location(start_pos, lines)
 
-    # Search for the first key-value pair
-    search_pattern = f'"{first_key}"'
-    match = re.search(search_pattern, json_text)
+    elif isinstance(element, str):
+        # For strings, use the string finder
+        return _find_string_in_text(json_text, element, lines)
 
-    if match:
-        start_pos = match.start()
-        return _position_to_location(start_pos, lines)
+    else:
+        # For primitives, use the primitive finder
+        return _find_primitive_in_text(json_text, element, lines)
 
     return None
 
@@ -245,6 +268,40 @@ def _find_string_in_text(
     search_pattern = f'"{re.escape(value)}"'
     match = re.search(search_pattern, json_text)
 
+    if match:
+        start_pos = match.start()
+        return _position_to_location(start_pos, lines)
+
+    return None
+
+
+def _find_primitive_in_text(
+    json_text: str, value: Any, lines: list[str]
+) -> LocationInfo | None:
+    """
+    Find the location of a primitive value (number, boolean, null) in the JSON text.
+
+    Args:
+        json_text: The JSON text
+        value: The primitive value to find
+        lines: List of lines in the JSON text
+
+    Returns:
+        LocationInfo if found, None otherwise
+    """
+    if value is None:
+        # Search for null
+        search_pattern = r"\bnull\b"
+    elif isinstance(value, bool):
+        # Search for true/false
+        search_pattern = r"\b(true|false)\b"
+    elif isinstance(value, int | float):
+        # Search for the number
+        search_pattern = re.escape(str(value))
+    else:
+        return None
+
+    match = re.search(search_pattern, json_text)
     if match:
         start_pos = match.start()
         return _position_to_location(start_pos, lines)

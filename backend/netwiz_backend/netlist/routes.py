@@ -127,11 +127,10 @@ async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
             detail={"validation_result": error_result.model_dump(mode="json")},
         )
 
-    print("here")
     # Step 7: Now that basic structure is validated, use detailed location tracking
     parse_result = parse_netlist_with_locations(json_text)
-    str(parse_result)
-    print("parsed")
+
+    # print("parsed", parse_result)
     # Create Netlist object using the validated data
     from netwiz_backend.netlist.core.models import Netlist
 
@@ -141,29 +140,51 @@ async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
         validation_errors = []
         for pydantic_error in e.errors():
             msg = pydantic_error["msg"]
-            path: list[str | int] = pydantic_error["loc"]
-            print(msg, path)
-            # TODO: get the line number and column number
+            path: list[str | int] = list(pydantic_error["loc"])
+
+            # Convert Pydantic path to location key and try to find location
+            # Pydantic paths are like ['components', 0, 'name']
+            # We need to convert this to a location key like "components.0.name"
+            location_info = {}
+
+            # Try to find location by progressively removing the last part of the path
+            for i in range(len(path), 0, -1):
+                partial_path = path[:i]
+                location_key = ".".join(str(p) for p in partial_path)
+
+                if parse_result.locations and location_key in parse_result.locations:
+                    location_info = parse_result.locations[location_key]
+                    print(
+                        f"Found location for path {path} at partial path {partial_path}: {location_info}"
+                    )
+                    break
+
+            if not location_info:
+                print(f"No location found for path {path}")
+
             validation_errors.append(
                 ValidationError(
                     message=msg,
                     error_type=ValidationErrorType.INVALID_FORMAT,
+                    line_number=location_info.line_number if location_info else None,
+                    character_position=location_info.character_position
+                    if location_info
+                    else None,
                 )
             )
-            error_result = ValidationResult(
-                is_valid=False,
-                errors=validation_errors,
-                warnings=[],
-            )
-            raise HTTPException(
-                status_code=422,
-                detail={"validation_result": error_result.model_dump(mode="json")},
-            ) from e
 
-    print("netlist")
+        error_result = ValidationResult(
+            is_valid=False,
+            errors=validation_errors,
+            warnings=[],
+        )
+        raise HTTPException(
+            status_code=422,
+            detail={"validation_result": error_result.model_dump(mode="json")},
+        ) from e
 
     # Create ValidationRequest without validation
-    return ValidationRequest.model_construct(netlist=netlist_obj)
+    return ValidationRequest(netlist=netlist_obj)
 
 
 # MongoDB storage via repository
