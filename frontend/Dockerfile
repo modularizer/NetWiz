@@ -1,5 +1,8 @@
 FROM node:18-alpine
 
+# Set build argument
+ARG ENVIRONMENT=production
+
 WORKDIR /app
 
 # Copy package files
@@ -23,9 +26,9 @@ RUN addgroup -g 1001 -S nodejs && \
     chown -R nextjs:nodejs /app
 USER nextjs
 
-# Health check (requires PORT env var to be set)
+# Health check (uses PORT env var)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000} || exit 1
 
-# Serve the production build (requires PORT and HOST env vars to be set)
-CMD ["sh", "-c", "serve -s dist -l ${PORT:-3000} -H ${HOST:-0.0.0.0}"]
+# Serve the production build (requires PORT env var to be set)
+CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-3000}"]
