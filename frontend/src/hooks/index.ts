@@ -15,11 +15,17 @@ import type { Netlist, ValidationResult } from '@/types/netlist'
 export const useNetlistValidation = () => {
   const mutation = useMutation<ValidationResult, Error, Netlist>({
     mutationFn: async (netlist: Netlist) => {
-      const response = await apiClient.validateNetlist({ netlist })
-      return response.validation_result
+        try {
+            const response = await apiClient.validateNetlist({netlist})
+            return response.validation_result
+        }catch(e){
+            console.log("handling validation error", e)
+            return e.details.validation_result
+        }
+
     },
     onError: (error) => {
-      console.error('Validation failed:', error)
+      console.error('Validation failed-onerror:', error)
     },
   })
 

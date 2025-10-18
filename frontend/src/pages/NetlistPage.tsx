@@ -8,7 +8,7 @@
  * - Interactive schematic visualization
  */
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
@@ -23,19 +23,27 @@ const NetlistPage: React.FC = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
   // Custom hooks for API operations
-  const { validateNetlist, isValidating } = useNetlistValidation()
+  const { validateNetlist, isValidating, validationResult: hookValidationResult } = useNetlistValidation()
+
+  // Sync hook validation result with local state
+  useEffect(() => {
+    console.log('Hook validation result changed:', hookValidationResult)
+    if (hookValidationResult) {
+      setValidationResult(hookValidationResult)
+    }
+  }, [hookValidationResult])
 
   // Handle netlist changes from JSON editor
   const handleNetlistChange = useCallback(async (newNetlist: Netlist) => {
+    console.log('Handling netlist change:', newNetlist)
     setNetlist(newNetlist)
-
-    // Validate the netlist
+    // Trigger validation - the hook will handle both success and error cases
     try {
-      const result = await validateNetlist(newNetlist)
-      setValidationResult(result)
+      console.log('Calling validateNetlist...')
+      await validateNetlist(newNetlist)
+      console.log('validateNetlist completed')
     } catch (error) {
-      console.error('Validation error:', error)
-      setValidationResult(null)
+      console.error('Error in handleNetlistChange:', error)
     }
   }, [validateNetlist])
 
@@ -45,17 +53,25 @@ const NetlistPage: React.FC = () => {
       const text = await file.text()
       const parsed = JSON.parse(text)
       setNetlist(parsed)
-
-      // Validate the uploaded netlist
-      const result = await validateNetlist(parsed)
-      setValidationResult(result)
+      // Trigger validation - the hook will handle both success and error cases
+      await validateNetlist(parsed)
     } catch (error) {
       console.error('Upload error:', error)
-      // Could show an error message to the user here
+      // Don't clear validation result - the hook should have handled the error
+      // and returned a validation result if it was a validation error
     }
   }, [validateNetlist])
 
-  // Handle test example selection
+  // Manual validation test
+  const handleManualValidation = useCallback(async () => {
+    if (!netlist) return
+    console.log('Manual validation triggered for:', netlist)
+    try {
+      await validateNetlist(netlist)
+    } catch (error) {
+      console.error('Manual validation error:', error)
+    }
+  }, [netlist, validateNetlist])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
       const response = await fetch(`/test-examples/${example.filename}`)
@@ -68,6 +84,18 @@ const NetlistPage: React.FC = () => {
       setValidationResult(result)
     } catch (error) {
       console.error('Error loading test example:', error)
+      // Set a simple error validation result
+      setValidationResult({
+        is_valid: false,
+        errors: [{
+          message: 'Unhandled exception',
+          error_type: 'validation_error',
+          line_number: null,
+          character_position: null
+        }],
+        warnings: [],
+        applied_rules: []
+      })
     }
   }, [validateNetlist])
 
@@ -115,6 +143,13 @@ const NetlistPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
                       <div className="flex items-center space-x-2">
+                        <button
+                          onClick={handleManualValidation}
+                          disabled={!netlist || isValidating}
+                          className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+                        >
+                          {isValidating ? 'Validating...' : 'Validate'}
+                        </button>
                         <select
                           onChange={(e) => {
                             const example = testExamples.find(ex => ex.id === e.target.value)

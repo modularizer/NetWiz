@@ -17,7 +17,6 @@ import type { paths, components } from '@/types/api'
 import type {
   NetlistUploadRequest,
   NetlistUploadResponse,
-  ValidationRequest,
   ValidationResponse
 } from '@/types/netlist'
 

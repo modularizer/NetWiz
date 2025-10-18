@@ -15,13 +15,51 @@ import type { Netlist, ValidationResult } from '@/types/netlist'
 export const useNetlistValidation = () => {
   const mutation = useMutation<ValidationResult, Error, Netlist>({
     mutationFn: async (netlist: Netlist) => {
-      const response = await apiClient.validateNetlist(netlist)
-      return response.validation_result
+      console.log('🎯 Hook mutationFn: Starting validation')
+      console.log('🎯 Hook mutationFn: Netlist:', netlist)
+      try {
+        console.log('🎯 Hook mutationFn: About to call API client')
+        const response = await apiClient.validateNetlist(netlist)
+        console.log('🎯 Hook mutationFn: API client returned success:', response)
+        return response.validation_result
+      } catch (error: any) {
+        console.log('🎯 Hook mutationFn: Caught error:', error)
+        console.log('🎯 Hook mutationFn: Error.details:', error.details)
+        console.log('🎯 Hook mutationFn: Error.details.validation_result:', error.details?.validation_result)
+
+        // Always return a validation result, never throw
+        if (error.details?.validation_result) {
+          console.log('🎯 Hook mutationFn: Returning validation result from error.details')
+          return error.details.validation_result
+        }
+
+        console.log('🎯 Hook mutationFn: Creating generic error result')
+        return {
+          is_valid: false,
+          errors: [{
+            message: error.message || 'Validation failed',
+            error_type: 'validation_error',
+            line_number: null,
+            character_position: null
+          }],
+          warnings: [],
+          applied_rules: []
+        }
+      }
     },
     onError: (error) => {
-      console.error('Validation failed:', error)
+      console.error('🎯 Hook onError:', error)
+    },
+    onSuccess: (data) => {
+      console.log('🎯 Hook onSuccess:', data)
+      console.log('🎯 Hook onSuccess: is_valid:', data?.is_valid)
+      console.log('🎯 Hook onSuccess: errors count:', data?.errors?.length || 0)
     },
   })
+
+  console.log('🎯 Hook: Current mutation.data:', mutation.data)
+  console.log('🎯 Hook: Current mutation.error:', mutation.error)
+  console.log('🎯 Hook: Current mutation.isLoading:', mutation.isLoading)
 
   return {
     validateNetlist: mutation.mutateAsync,

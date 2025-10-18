@@ -50,24 +50,38 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
     editor.deltaDecorations(editor.getModel()?.getAllDecorations() || [], [])
 
     // Add error markers
-    const markers = validationResult.errors?.map((error) => ({
-      startLineNumber: error.line_number || 1,
-      startColumn: error.character_position || 1,
-      endLineNumber: error.line_number || 1,
-      endColumn: (error.character_position || 1) + 10,
-      message: error.message,
-      severity: 8, // Error severity
-    })) || []
+    const markers = validationResult.errors
+      ?.filter(error => error.line_number != null && error.line_number > 0)
+      ?.map((error) => ({
+        range: {
+          startLineNumber: error.line_number,
+          startColumn: error.character_position || 1,
+          endLineNumber: error.line_number,
+          endColumn: (error.character_position || 1) + 10,
+        },
+        options: {
+          className: 'error-marker',
+          hoverMessage: { value: error.message },
+          glyphMarginClassName: 'error-glyph',
+        },
+      })) || []
 
     // Add warning markers
-    const warningMarkers = validationResult.warnings?.map((warning) => ({
-      startLineNumber: warning.line_number || 1,
-      startColumn: warning.character_position || 1,
-      endLineNumber: warning.line_number || 1,
-      endColumn: (warning.character_position || 1) + 10,
-      message: warning.message,
-      severity: 4, // Warning severity
-    })) || []
+    const warningMarkers = validationResult.warnings
+      ?.filter(warning => warning.line_number != null && warning.line_number > 0)
+      ?.map((warning) => ({
+        range: {
+          startLineNumber: warning.line_number,
+          startColumn: warning.character_position || 1,
+          endLineNumber: warning.line_number,
+          endColumn: (warning.character_position || 1) + 10,
+        },
+        options: {
+          className: 'warning-marker',
+          hoverMessage: { value: warning.message },
+          glyphMarginClassName: 'warning-glyph',
+        },
+      })) || []
 
     editor.deltaDecorations([], [...markers, ...warningMarkers])
   }, [validationResult])
