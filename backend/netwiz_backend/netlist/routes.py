@@ -18,10 +18,8 @@ from motor.core import AgnosticDatabase
 from pydantic import UUID4
 
 from netwiz_backend.database import get_database
+from netwiz_backend.json_tracker import TrackedJson, TrackedJSONDecodeError
 from netwiz_backend.models import PaginationParams
-from netwiz_backend.netlist.core.json_parser import (
-    parse_netlist_with_locations,
-)
 from netwiz_backend.netlist.core.validation import (
     validate_netlist_internal,
 )
@@ -48,60 +46,56 @@ async def get_raw_json(request: FastAPIRequest) -> str:
 
 async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
     """Get ValidationRequest with custom pre-validation"""
-    import json
 
     from netwiz_backend.netlist.core.validation import (
         ValidationError,
         ValidationErrorType,
-        ValidationResult,
+        ValidationHTTPError,
     )
 
     body = await request.body()
     json_text = body.decode("utf-8")
 
-    # Step 1: Basic JSON syntax validation
+    # Step 1: Parse JSON using TrackedJson (primary and only JSON parser)
     try:
-        data = json.loads(json_text)
-    except json.JSONDecodeError as e:
-        # JSON syntax error - provide line/column info from the exception
-        validation_errors = [
-            ValidationError(
-                message=f"JSON syntax error: {e.msg}",
-                error_type=ValidationErrorType.INVALID_JSON,
-                line_number=e.lineno,
-                character_position=e.colno,
-            )
-        ]
-
-        error_result = ValidationResult(
-            is_valid=False,
-            errors=validation_errors,
-            warnings=[],
-        )
-        raise HTTPException(
-            status_code=422,
-            detail={"validation_result": error_result.model_dump(mode="json")},
+        tracked_json = TrackedJson.loads(json_text, raise_on_error=True)
+        data = tracked_json.data
+    except TrackedJSONDecodeError as e:
+        # JSON syntax error - TrackedJson provides detailed location info
+        raise ValidationHTTPError(
+            validation_errors=[
+                ValidationError(
+                    message=f"JSON syntax error: {e.msg}",
+                    error_type=ValidationErrorType.INVALID_JSON,
+                    location=e.error_loc,
+                )
+            ],
+            applied_rules=[ValidationErrorType.INVALID_JSON],
+        ) from e
+    except Exception as e:
+        # Unexpected error during JSON parsing
+        raise ValidationHTTPError(
+            validation_errors=[
+                ValidationError(
+                    message=f"Unexpected error parsing JSON: {e!s}",
+                    error_type=ValidationErrorType.INVALID_JSON,
+                    location=None,
+                )
+            ],
+            applied_rules=[ValidationErrorType.INVALID_JSON],
         ) from e
 
     # Step 2: Check if data is a dict
     if not isinstance(data, dict):
-        validation_errors = [
-            ValidationError(
-                message="Request data must be an object",
-                error_type=ValidationErrorType.INVALID_JSON,
-                line_number=1,  # Default to line 1 for root object issues
-                character_position=1,
-            )
-        ]
-
-        error_result = ValidationResult(
-            is_valid=False,
-            errors=validation_errors,
-            warnings=[],
-        )
-        raise HTTPException(
-            status_code=422,
-            detail={"validation_result": error_result.model_dump(mode="json")},
+        raise ValidationHTTPError(
+            validation_errors=[
+                ValidationError(
+                    message="Request data must be an object",
+                    error_type=ValidationErrorType.INVALID_JSON,
+                    location=None,
+                )
+            ],
+            applied_rules=[ValidationErrorType.INVALID_JSON],
         )
 
     missing_field_validation_errors = []
@@ -111,24 +105,18 @@ async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
                 ValidationError(
                     message=f"Missing required field: {f}",
                     error_type=ValidationErrorType.MISSING_FIELD,
-                    line_number=1,  # Default to line 1 for missing fields
-                    character_position=1,
+                    location=None,
                 )
             )
 
     if missing_field_validation_errors:
-        error_result = ValidationResult(
-            is_valid=False,
-            errors=missing_field_validation_errors,
-            warnings=[],
-        )
-        raise HTTPException(
-            status_code=422,
-            detail={"validation_result": error_result.model_dump(mode="json")},
+        raise ValidationHTTPError(
+            validation_errors=missing_field_validation_errors,
+            applied_rules=[ValidationErrorType.MISSING_FIELD],
         )
 
-    # Step 7: Now that basic structure is validated, use detailed location tracking
-    parse_result = parse_netlist_with_locations(json_text)
+    # Step 7: Now that basic structure is validated, we already have tracked_json
+    # from the initial parsing step above
 
     # print("parsed", parse_result)
     # Create Netlist object using the validated data
@@ -142,22 +130,26 @@ async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
             msg = pydantic_error["msg"]
             path: list[str | int] = list(pydantic_error["loc"])
 
-            # Convert Pydantic path to location key and try to find location
+            # Convert Pydantic path to TrackedJson path format
             # Pydantic paths are like ['components', 0, 'name']
-            # We need to convert this to a location key like "components.0.name"
-            location_info = {}
+            # TrackedJson paths are like "$.components.0.name"
+            location_info = None
+            if tracked_json:
+                try:
+                    # Try progressively removing the last part of the path
+                    for i in range(len(path), 0, -1):
+                        partial_path = path[:i]
+                        location_key = "$." + ".".join(str(p) for p in partial_path)
 
-            # Try to find location by progressively removing the last part of the path
-            for i in range(len(path), 0, -1):
-                partial_path = path[:i]
-                location_key = ".".join(str(p) for p in partial_path)
-
-                if parse_result.locations and location_key in parse_result.locations:
-                    location_info = parse_result.locations[location_key]
-                    print(
-                        f"Found location for path {path} at partial path {partial_path}: {location_info}"
-                    )
-                    break
+                        if location_key in tracked_json.locations:
+                            loc = tracked_json.locations[location_key]
+                            location_info = loc
+                            print(
+                                f"Found location for path {path} at partial path {partial_path}: {location_info}"
+                            )
+                            break
+                except Exception as e:
+                    print(f"Error finding location for path {path}: {e}")
 
             if not location_info:
                 print(f"No location found for path {path}")
@@ -166,21 +158,13 @@ async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
                 ValidationError(
                     message=msg,
                     error_type=ValidationErrorType.INVALID_FORMAT,
-                    line_number=location_info.line_number if location_info else None,
-                    character_position=location_info.character_position
-                    if location_info
-                    else None,
+                    location=location_info,
                 )
             )
 
-        error_result = ValidationResult(
-            is_valid=False,
-            errors=validation_errors,
-            warnings=[],
-        )
-        raise HTTPException(
-            status_code=422,
-            detail={"validation_result": error_result.model_dump(mode="json")},
+        raise ValidationHTTPError(
+            validation_errors=validation_errors,
+            applied_rules=[ValidationErrorType.INVALID_FORMAT],
         ) from e
 
     # Create ValidationRequest without validation
@@ -342,8 +326,7 @@ async def validate_netlist(
                     ValidationError(
                         message=f"Validation failed: {e.detail}",
                         error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
-                        line_number=None,
-                        character_position=None,
+                        location=None,
                     )
                 ],
                 warnings=[],
@@ -359,23 +342,17 @@ async def validate_netlist(
         from netwiz_backend.netlist.core.validation import (
             ValidationError,
             ValidationErrorType,
-            ValidationResult,
+            ValidationHTTPError,
         )
 
-        error_result = ValidationResult(
-            is_valid=False,
-            errors=[
+        raise ValidationHTTPError(
+            validation_errors=[
                 ValidationError(
                     message=f"Validation failed: {e!s}",
                     error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
-                    line_number=None,
-                    character_position=None,
+                    location=None,
                 )
             ],
-            warnings=[],
-            applied_rules=[],
-        )
-        return JSONResponse(
+            applied_rules=[ValidationErrorType.BLANK_COMPONENT_NAME],
             status_code=500,
-            content={"validation_result": error_result.model_dump(mode="json")},
-        )
+        ) from e

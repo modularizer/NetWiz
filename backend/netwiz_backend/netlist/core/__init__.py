@@ -35,17 +35,10 @@ Example:
 """
 
 # Import core models
-# Import JSON parser
-from .json_parser import (
-    LocationInfo,
-    ParseResult,
-    find_element_location,
-    get_location_for_component,
-    get_location_for_component_name,
-    get_location_for_net,
-    get_location_for_net_name,
-    parse_netlist_with_locations,
-)
+# Import JSON tracker
+from netwiz_backend.json_tracker import TrackedJson
+from netwiz_backend.json_tracker.types import LocationInfo
+
 from .models import (
     Component,
     ComponentType,
@@ -80,13 +73,7 @@ __all__ = [
     "ValidationErrorType",
     "ValidationResult",
     "validate_netlist_internal",
-    # JSON Parser
+    # JSON Tracker
+    "TrackedJson",
     "LocationInfo",
-    "ParseResult",
-    "parse_netlist_with_locations",
-    "find_element_location",
-    "get_location_for_component",
-    "get_location_for_component_name",
-    "get_location_for_net",
-    "get_location_for_net_name",
 ]
