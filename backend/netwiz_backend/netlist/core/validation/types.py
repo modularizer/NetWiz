@@ -1,14 +1,9 @@
 from datetime import datetime, timezone
 from enum import Enum
-from typing import TYPE_CHECKING
 
-from fastapi import HTTPException
 from pydantic import BaseModel, Field, conlist, constr
 
-if TYPE_CHECKING:
-    from netwiz_backend.json_tracker.types import LocationInfo
-else:
-    from netwiz_backend.json_tracker.types import LocationInfo
+from netwiz_backend.json_tracker.types import LocationInfo
 
 
 class ValidationErrorType(str, Enum):
@@ -30,9 +25,7 @@ class ValidationErrorType(str, Enum):
         POWER_PIN_NOT_CONNECTED_TO_POWER: Pin marked as power type is not connected to a power net
         CLOCK_NET_SINGLE_CONNECTION: Clock net has only one connection (should typically have multiple)
         NET_TYPE_NAME_MISMATCH: Net type doesn't match net name convention
-        MISNAMED_GROUND_NET: Net named like ground but typed as something else
-        MISNAMED_POWER_NET: Net named like power but typed as something else
-        MISNAMED_CLOCK_NET: Net named like clock but typed as something else
+        MISNAMED_NETS: Net name appears unintentional
         ORPHANED_NET: Net has no connections
         UNCONNECTED_COMPONENT: Component is not connected to any net
     """
@@ -40,10 +33,10 @@ class ValidationErrorType(str, Enum):
     INVALID_JSON = "invalid_json"
     MISSING_FIELD = "missing_field"
     INVALID_FORMAT = "invalid_format"
-    MISSING_NET_NAME = "missing_net_name"
     BLANK_COMPONENT_NAME = "blank_component_name"
     BLANK_NET_NAME = "blank_net_name"
     DUPLICATE_COMPONENT_NAME = "duplicate_component_name"
+    DUPLICATE_NAME = "duplicate_name"
     DUPLICATE_NET_NAME = "duplicate_net_name"
     MISSING_GROUND = "missing_ground"
     INSUFFICIENT_GND_CONNECTIONS = "insufficient_gnd_connections"
@@ -51,50 +44,9 @@ class ValidationErrorType(str, Enum):
     POWER_PIN_NOT_CONNECTED_TO_POWER = "power_pin_not_connected_to_power"
     CLOCK_NET_SINGLE_CONNECTION = "clock_net_single_connection"
     NET_TYPE_NAME_MISMATCH = "net_type_name_mismatch"
-    MISNAMED_GROUND_NET = "misnamed_ground_net"
-    MISNAMED_POWER_NET = "misnamed_power_net"
-    MISNAMED_CLOCK_NET = "misnamed_clock_net"
+    MISNAMED_NETS = "misnamed_nets"
     ORPHANED_NET = "orphaned_net"
     UNCONNECTED_COMPONENT = "unconnected_component"
-
-
-class ValidationHTTPError(HTTPException):
-    """
-    HTTP exception specifically for validation errors.
-
-    This class encapsulates the common pattern of creating ValidationResult
-    objects and raising HTTP exceptions with validation error details.
-
-    The validation_errors list is automatically separated into errors and warnings
-    based on the severity field of each ValidationError.
-
-    Args:
-        validation_errors: List of ValidationError objects (auto-separated by severity)
-        applied_rules: Optional list of applied ValidationErrorType rules
-        status_code: HTTP status code (default: 422)
-    """
-
-    def __init__(
-        self,
-        validation_errors: list["ValidationError"],
-        applied_rules: list[ValidationErrorType] | None = None,
-        status_code: int = 422,
-    ):
-        # Auto-separate validation_errors into errors and warnings based on severity
-        errors = [ve for ve in validation_errors if ve.severity == "error"]
-        warnings = [ve for ve in validation_errors if ve.severity == "warning"]
-
-        error_result = ValidationResult(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings,
-            validation_rules_applied=applied_rules or [],
-        )
-
-        super().__init__(
-            status_code=status_code,
-            detail={"validation_result": error_result.model_dump(mode="json")},
-        )
 
 
 class ValidationError(BaseModel):
@@ -193,10 +145,7 @@ class ValidationResult(BaseModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="When validation was performed",
     )
-    validation_rules_applied: conlist(ValidationErrorType) = Field(
-        default_factory=list, description="List of validation rules that were applied"
-    )
-    auto_fill_suggestions: list[dict[str, str]] = Field(
+    applied_rules: list[ValidationErrorType] = Field(
         default_factory=list,
-        description="Suggestions for auto-filling missing net types based on names",
+        description="List of validation rules that were applied",
     )

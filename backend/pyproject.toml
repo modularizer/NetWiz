@@ -280,6 +280,7 @@ ignore = [
     "RUF003",
     "RUF015"
 ]
+per-file-ignores = { "__init__.py" = ["ALL"] }
 fixable = [
     "ALL",
 ]

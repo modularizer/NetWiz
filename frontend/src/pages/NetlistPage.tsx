@@ -102,11 +102,12 @@ const NetlistPage: React.FC = () => {
         errors: [{
           message: 'Unhandled exception',
           error_type: 'validation_error',
-          line_number: null,
-          character_position: null
+          severity: 'error',
+          location: null
         }],
         warnings: [],
-        applied_rules: []
+        validation_timestamp: new Date().toISOString(),
+        validation_rules_applied: []
       })
     }
   }, [validateNetlist])

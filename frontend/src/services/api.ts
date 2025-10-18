@@ -142,6 +142,21 @@ class NetWizApiClient {
     return response.data
   }
 
+  async validateJsonText(
+    jsonText: string
+  ): Promise<ValidationResponse> {
+    const response = await this.client.post<ValidationResponse>(
+      '/netlist/validate-text',
+      { json_text: jsonText },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+    return response.data
+  }
+
   async getNetlist(submissionId: string): Promise<ApiComponents['schemas']['NetlistGetResponse']> {
     const response = await this.client.get<ApiComponents['schemas']['NetlistGetResponse']>(
       `/netlist/${submissionId}`

@@ -11,14 +11,16 @@ from pydantic import UUID4
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
-from netwiz_backend.netlist.core.validation.prevalidation import validate_basic_format
 from netwiz_backend.netlist.core.validation.types import (
     ValidationError,
     ValidationErrorType,
-    ValidationHTTPError,
     ValidationResult,
 )
-from netwiz_backend.netlist.core.validation.validation import validate_netlist_internal
+from netwiz_backend.netlist.core.validation.validation import (
+    validate_basic_format,
+    validate_netlist,
+    validate_netlist_text,
+)
 from netwiz_backend.netlist.models import (
     NetlistEndpoints,
     NetlistGetResponse,
@@ -26,6 +28,7 @@ from netwiz_backend.netlist.models import (
     NetlistSubmission,
     NetlistUploadRequest,
     NetlistUploadResponse,
+    TextValidationRequest,
     ValidationRequest,
 )
 from netwiz_backend.netlist.repository import get_netlist_repository
@@ -72,6 +75,12 @@ class NetlistController(RouteControllerABC):
             methods=["POST"],
         )
 
+        router.add_api_route(
+            "/validate-text",
+            self.validate_json_text,
+            methods=["POST"],
+        )
+
     def get_endpoints(self) -> NetlistEndpoints:
         """Generate netlist endpoints based on the configured prefix."""
         return NetlistEndpoints(
@@ -79,6 +88,7 @@ class NetlistController(RouteControllerABC):
             list=self.prefix,
             get=f"{self.prefix}/{{submission_id}}",
             validate=f"{self.prefix}/validate",
+            validate_text=f"{self.prefix}/validate-text",
         )
 
     # ── Shared dependency (kept on the class) ──────────────────────────────────
@@ -93,9 +103,9 @@ class NetlistController(RouteControllerABC):
 
         tracked_netlist, vres = validate_basic_format(json_text)
         if vres is not None:
-            raise ValidationHTTPError(
-                validation_errors=vres.errors + vres.warnings,
-                applied_rules=vres.applied_rules,
+            raise HTTPException(
+                status_code=422,
+                detail={"validation_result": vres.model_dump(mode="json")},
             )
         return ValidationRequest(netlist=tracked_netlist)
 
@@ -158,7 +168,7 @@ class NetlistController(RouteControllerABC):
         """
         try:
             submission_id = str(uuid.uuid4())
-            validation_result = validate_netlist_internal(request.netlist)
+            validation_result = validate_netlist(request.netlist)
 
             submission = NetlistSubmission(
                 id=submission_id,
@@ -188,49 +198,50 @@ class NetlistController(RouteControllerABC):
             get_unvalidated_request.__func__
         ),  # staticmethod ref
     ) -> JSONResponse:
-        """
-        Validate a netlist without storing it in the database.
+        """Validate a netlist without storing it in the database."""
+        return await self._validate(lambda: validate_netlist(request.netlist))
 
-        Performs comprehensive validation of a netlist submission without persisting
-        it to the database. Useful for testing netlist validity before submission or
-        validation-only workflows. Includes structural checks and design rule compliance.
-        """
+    async def validate_json_text(
+        self,
+        request: TextValidationRequest,
+    ) -> JSONResponse:
+        return await self._validate(lambda: validate_netlist_text(request.json_text))
+
+    async def _validate(self, func):
+        """Validate JSON text directly with better location tracking."""
         try:
-            validation_result = validate_netlist_internal(request.netlist)
+            validation_result = func
+            if validation_result.is_valid:
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "validation_result": validation_result.model_dump(mode="json")
+                    },
+                )
             return JSONResponse(
-                status_code=200,
+                status_code=422,
                 content={
-                    "validation_result": validation_result.model_dump(mode="json")
+                    "detail": {
+                        "validation_result": validation_result.model_dump(mode="json")
+                    }
                 },
             )
-        except ValidationHTTPError as e:
-            return JSONResponse(status_code=e.status_code, content=e.detail)
-        except HTTPException as e:
-            error_result = ValidationResult(
+        except Exception:
+            validation_result = ValidationResult(
                 is_valid=False,
                 errors=[
                     ValidationError(
-                        message=f"Validation failed: {e.detail}",
                         error_type=ValidationErrorType.INVALID_FORMAT,
-                        location=None,
+                        message="Unknown Internal Server Error",
+                        severity="error",
                     )
                 ],
-                warnings=[],
-                applied_rules=[ValidationErrorType.INVALID_FORMAT],
             )
             return JSONResponse(
-                status_code=e.status_code,
-                content={"validation_result": error_result.model_dump(mode="json")},
-            )
-        except Exception as e:
-            raise ValidationHTTPError(
-                validation_errors=[
-                    ValidationError(
-                        message=f"Validation failed: {e!s}",
-                        error_type=ValidationErrorType.INVALID_FORMAT,
-                        location=None,
-                    )
-                ],
-                applied_rules=ValidationErrorType.INVALID_FORMAT,
                 status_code=500,
-            ) from e
+                content={
+                    "detail": {
+                        "validation_result": validation_result.model_dump(mode="json")
+                    }
+                },
+            )

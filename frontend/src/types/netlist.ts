@@ -5,6 +5,19 @@
  * which may differ from the generated OpenAPI types in some cases.
  */
 
+// LocationInfo type that matches the backend LocationInfo model
+export interface LocationInfo {
+  parents: LocationInfo[]
+  key: string
+  kind: 'key' | 'object' | 'list' | 'null' | 'string' | 'boolean' | 'number'
+  start_character_number: number
+  start_line_number: number
+  start_line_character_number: number
+  end_character_number: number
+  end_line_number: number
+  end_line_character_number: number
+}
+
 // Custom ValidationError type that matches our backend model
 export interface ValidationError {
   error_type: string
@@ -12,8 +25,7 @@ export interface ValidationError {
   component_id?: string | null
   net_id?: string | null
   severity: 'error' | 'warning'
-  line_number?: number | null
-  character_position?: number | null
+  location?: LocationInfo | null
 }
 
 // Custom ValidationResult type

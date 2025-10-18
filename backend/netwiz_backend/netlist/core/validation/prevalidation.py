@@ -124,7 +124,7 @@ def check_basic_format(
 
 def localize_pydantic_error(
     e: pydantic_core.ValidationError, tracked_json: TrackedJson | None
-) -> ValidationResult:
+) -> list[ValidationError]:
     validation_errors = []
     for pydantic_error in e.errors():
         msg = pydantic_error["msg"]
@@ -144,9 +144,6 @@ def localize_pydantic_error(
                     if location_key in tracked_json.locations:
                         loc = tracked_json.locations[location_key]
                         location_info = loc
-                        print(
-                            f"Found location for path {path} at partial path {partial_path}: {location_info}"
-                        )
                         break
             except Exception as e:
                 print(f"Error finding location for path {path}: {e}")

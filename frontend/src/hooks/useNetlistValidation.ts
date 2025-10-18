@@ -11,6 +11,65 @@ import { useMutation, useQuery } from 'react-query'
 import { apiClient } from '@/services/api'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
+// Hook for JSON text validation
+export const useJsonValidation = () => {
+  const mutation = useMutation<ValidationResult, Error, string>({
+    mutationFn: async (jsonText: string) => {
+      console.log('🎯 JSON Hook mutationFn: Starting validation')
+      console.log('🎯 JSON Hook mutationFn: JSON text length:', jsonText.length)
+      try {
+        console.log('🎯 JSON Hook mutationFn: About to call API client')
+        const response = await apiClient.validateJsonText(jsonText)
+        console.log('🎯 JSON Hook mutationFn: API client returned success:', response)
+        return response.validation_result
+      } catch (error: any) {
+        console.log('🎯 JSON Hook mutationFn: Caught error:', error)
+        console.log('🎯 JSON Hook mutationFn: Error.details:', error.details)
+        console.log('🎯 JSON Hook mutationFn: Error.details.validation_result:', error.details?.validation_result)
+
+        // Always return a validation result, never throw
+        if (error.details?.validation_result) {
+          console.log('🎯 JSON Hook mutationFn: Returning validation result from error.details')
+          return error.details.validation_result
+        }
+
+        console.log('🎯 JSON Hook mutationFn: Creating generic error result')
+        return {
+          is_valid: false,
+          errors: [{
+            message: error.message || 'JSON validation failed',
+            error_type: 'validation_error',
+            severity: 'error',
+            location: null
+          }],
+          warnings: [],
+          validation_timestamp: new Date().toISOString(),
+          validation_rules_applied: []
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('🎯 JSON Hook onError:', error)
+    },
+    onSuccess: (data) => {
+      console.log('🎯 JSON Hook onSuccess:', data)
+      console.log('🎯 JSON Hook onSuccess: is_valid:', data?.is_valid)
+      console.log('🎯 JSON Hook onSuccess: errors count:', data?.errors?.length || 0)
+    },
+  })
+
+  console.log('🎯 JSON Hook: Current mutation.data:', mutation.data)
+  console.log('🎯 JSON Hook: Current mutation.error:', mutation.error)
+  console.log('🎯 JSON Hook: Current mutation.isLoading:', mutation.isLoading)
+
+  return {
+    validateJsonText: mutation.mutateAsync,
+    isValidating: mutation.isLoading,
+    validationError: mutation.error,
+    validationResult: mutation.data,
+  }
+}
+
 // Hook for netlist validation
 export const useNetlistValidation = () => {
   const mutation = useMutation<ValidationResult, Error, Netlist>({
@@ -39,11 +98,11 @@ export const useNetlistValidation = () => {
           errors: [{
             message: error.message || 'Validation failed',
             error_type: 'validation_error',
-            line_number: null,
-            character_position: null
+            severity: 'error',
+            location: null
           }],
           warnings: [],
-          applied_rules: []
+          validation_rules_applied: []
         }
       }
     },

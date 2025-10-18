@@ -34,6 +34,12 @@ class NetlistSubmission(BaseModel):
 
 
 # API Request/Response Models
+class TextValidationRequest(BaseModel):
+    """Request model for validating JSON text directly"""
+
+    json_text: str = Field(..., description="The JSON text to validate")
+
+
 class ValidationRequest(BaseModel):
     """Request model for validating a netlist"""
 
@@ -95,4 +101,7 @@ class NetlistEndpoints(BaseModel):
     get: constr(strip_whitespace=True) = Field(..., description="Get endpoint")
     validate: constr(strip_whitespace=True) = Field(
         ..., description="Validate endpoint"
+    )
+    validate_text: constr(strip_whitespace=True) = Field(
+        ..., description="Validate JSON text endpoint"
     )

@@ -78,40 +78,43 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
             </h4>
           </div>
           <div className="divide-y divide-gray-200">
-            {errors.map((error, index) => (
-              <div
-                key={index}
-                className={`p-4 ${error.line_number ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
-                onClick={() => {
-                  console.log('ValidationPanel: Error clicked:', error.line_number, error.character_position)
-                  if (error.line_number && error.character_position && onNavigateToError) {
-                    console.log('ValidationPanel: Calling onNavigateToError')
-                    onNavigateToError(error.line_number, error.character_position)
-                  } else {
-                    console.log('ValidationPanel: Cannot navigate - missing data or callback')
-                  }
-                }}
-              >
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="w-4 h-4 text-error-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{error.message}</p>
-                    <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                      <span className="badge-error">{error.error_type}</span>
-                      {error.line_number && (
-                        <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
-                          <MapPin className="w-3 h-3" />
-                          <span>Line {error.line_number}, Col {error.character_position}</span>
-                          {onNavigateToError && (
-                            <span className="text-blue-500 ml-1">(click to navigate)</span>
-                          )}
-                        </span>
-                      )}
+            {errors.map((error, index) => {
+              const hasLocation = error.location && error.location.start_line_number
+              return (
+                <div
+                  key={index}
+                  className={`p-4 ${hasLocation ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                  onClick={() => {
+                    console.log('ValidationPanel: Error clicked:', error.location)
+                    if (hasLocation && onNavigateToError) {
+                      console.log('ValidationPanel: Calling onNavigateToError')
+                      onNavigateToError(error.location!.start_line_number, error.location!.start_line_character_number)
+                    } else {
+                      console.log('ValidationPanel: Cannot navigate - missing data or callback')
+                    }
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    <AlertCircle className="w-4 h-4 text-error-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{error.message}</p>
+                      <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
+                        <span className="badge-error">{error.error_type}</span>
+                        {hasLocation && (
+                          <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
+                            <MapPin className="w-3 h-3" />
+                            <span>Line {error.location!.start_line_number}, Col {error.location!.start_line_character_number}</span>
+                            {onNavigateToError && (
+                              <span className="text-blue-500 ml-1">(click to navigate)</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -126,36 +129,39 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
             </h4>
           </div>
           <div className="divide-y divide-gray-200">
-            {warnings.map((warning, index) => (
-              <div
-                key={index}
-                className={`p-4 ${warning.line_number ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
-                onClick={() => {
-                  if (warning.line_number && warning.character_position && onNavigateToError) {
-                    onNavigateToError(warning.line_number, warning.character_position)
-                  }
-                }}
-              >
-                <div className="flex items-start space-x-3">
-                  <AlertTriangle className="w-4 h-4 text-warning-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{warning.message}</p>
-                    <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
-                      <span className="badge-warning">{warning.error_type}</span>
-                      {warning.line_number && (
-                        <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
-                          <MapPin className="w-3 h-3" />
-                          <span>Line {warning.line_number}, Col {warning.character_position}</span>
-                          {onNavigateToError && (
-                            <span className="text-blue-500 ml-1">(click to navigate)</span>
-                          )}
-                        </span>
-                      )}
+            {warnings.map((warning, index) => {
+              const hasLocation = warning.location && warning.location.start_line_number
+              return (
+                <div
+                  key={index}
+                  className={`p-4 ${hasLocation ? 'cursor-pointer hover:bg-gray-50 transition-colors' : ''}`}
+                  onClick={() => {
+                    if (hasLocation && onNavigateToError) {
+                      onNavigateToError(warning.location!.start_line_number, warning.location!.start_line_character_number)
+                    }
+                  }}
+                >
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="w-4 h-4 text-warning-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{warning.message}</p>
+                      <div className="mt-1 flex items-center space-x-2 text-xs text-gray-500">
+                        <span className="badge-warning">{warning.error_type}</span>
+                        {hasLocation && (
+                          <span className={`flex items-center space-x-1 ${onNavigateToError ? 'text-blue-600 hover:text-blue-800' : ''}`}>
+                            <MapPin className="w-3 h-3" />
+                            <span>Line {warning.location!.start_line_number}, Col {warning.location!.start_line_character_number}</span>
+                            {onNavigateToError && (
+                              <span className="text-blue-500 ml-1">(click to navigate)</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

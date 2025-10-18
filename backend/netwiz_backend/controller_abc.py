@@ -17,7 +17,7 @@ class RouteControllerABC(ABC):
         self._register_routes(self.router)
 
     def register(self, app):
-        app.include_router(self.router, prefix=self.prefix)
+        app.include_router(self.router)
         return app
 
     @abstractmethod

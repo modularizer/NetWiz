@@ -52,44 +52,45 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
 
     // Add error markers using Monaco's built-in decoration types
     const errorMarkers = validationResult.errors
-      ?.filter(error => error.line_number != null && error.line_number > 0)
+      ?.filter(error => error.location && error.location.start_line_number > 0)
       ?.map((error) => {
+        console.log('Creating marker for error:', error);
         return {
-            range: {
-                startLineNumber: error.line_number,
-                startColumn: error.character_position || 1,
-                endLineNumber: error.line_number,
-                endColumn: (error.character_position || 1) + 10,
+          range: {
+            startLineNumber: error.location!.start_line_number,
+            startColumn: error.location!.start_line_character_number,
+            endLineNumber: error.location!.end_line_number,
+            endColumn: error.location!.end_line_character_number,
+          },
+          options: {
+            isWholeLine: false,
+            className: 'error-squiggly',
+            hoverMessage: {
+              value: `❌ Error: ${error.message}`,
+              isTrusted: true
             },
-            options: {
-                isWholeLine: false,
-                className: 'error-squiggly',
-                hoverMessage: {
-                    value: `❌ Error: ${error.message}`,
-                    isTrusted: true
-                },
-                glyphMarginClassName: 'error-glyph',
-                minimap: {
-                    color: '#ff6b6b',
-                    position: 1
-                },
-                overviewRuler: {
-                    color: '#ff6b6b',
-                    position: 1
-                }
+            glyphMarginClassName: 'error-glyph',
+            minimap: {
+              color: '#ff6b6b',
+              position: 1
+            },
+            overviewRuler: {
+              color: '#ff6b6b',
+              position: 1
             }
-        }
-      }) || []
+          }
+        };
+      }) || [];
 
     // Add warning markers using Monaco's built-in decoration types
     const warningMarkers = validationResult.warnings
-      ?.filter(warning => warning.line_number != null && warning.line_number > 0)
+      ?.filter(warning => warning.location && warning.location.start_line_number > 0)
       ?.map((warning) => ({
         range: {
-          startLineNumber: warning.line_number,
-          startColumn: warning.character_position || 1,
-          endLineNumber: warning.line_number,
-          endColumn: (warning.character_position || 1) + 10,
+          startLineNumber: warning.location!.start_line_number,
+          startColumn: warning.location!.start_line_character_number,
+          endLineNumber: warning.location!.end_line_number,
+          endColumn: warning.location!.end_line_character_number,
         },
         options: {
           isWholeLine: false,
@@ -108,7 +109,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
             position: 2
           }
         },
-      })) || []
+      })) || [];
 
     console.log('Adding decorations:', errorMarkers.length, 'errors,', warningMarkers.length, 'warnings')
     console.log('Error data:', validationResult.errors)
@@ -118,48 +119,48 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
     editor.deltaDecorations([], [...errorMarkers, ...warningMarkers])
   }, [validationResult])
 
-        // Function to navigate to error location
-        const navigateToError = (lineNumber: number, characterPosition: number) => {
-          console.log('Navigating to:', lineNumber, characterPosition)
-          if (!editorRef.current) return
+  // Function to navigate to error location
+  const navigateToError = (lineNumber: number, characterPosition: number) => {
+    console.log('Navigating to:', lineNumber, characterPosition)
+    if (!editorRef.current) return
 
-          const editor = editorRef.current
-          console.log('Editor found, setting position...')
+    const editor = editorRef.current
+    console.log('Editor found, setting position...')
 
-          try {
-            // Method 1: Focus first
-            editor.focus()
-            console.log('Editor focused')
+    try {
+      // Method 1: Focus first
+      editor.focus()
+      console.log('Editor focused')
 
-            // Method 2: Set position
-            const position = { lineNumber, column: characterPosition }
-            editor.setPosition(position)
-            console.log('Position set')
+      // Method 2: Set position
+      const position = { lineNumber, column: characterPosition }
+      editor.setPosition(position)
+      console.log('Position set')
 
-            // Method 3: Reveal range
-            const range = {
-              startLineNumber: lineNumber,
-              startColumn: characterPosition,
-              endLineNumber: lineNumber,
-              endColumn: characterPosition + 1
-            }
-            editor.revealRange(range, 1) // 1 = center
-            console.log('Range revealed')
+      // Method 3: Reveal range
+      const range = {
+        startLineNumber: lineNumber,
+        startColumn: characterPosition,
+        endLineNumber: lineNumber,
+        endColumn: characterPosition + 1
+      }
+      editor.revealRange(range, 1) // 1 = center
+      console.log('Range revealed')
 
-            // Method 4: Set selection to highlight the error
-            editor.setSelection(range)
-            console.log('Selection set')
+      // Method 4: Set selection to highlight the error
+      editor.setSelection(range)
+      console.log('Selection set')
 
-            // Method 5: Reveal line in center with delay
-            setTimeout(() => {
-              editor.revealLineInCenter(lineNumber)
-              console.log('Line revealed in center (delayed)')
-            }, 100)
+      // Method 5: Reveal line in center with delay
+      setTimeout(() => {
+        editor.revealLineInCenter(lineNumber)
+        console.log('Line revealed in center (delayed)')
+      }, 100)
 
-          } catch (error) {
-            console.error('Navigation error:', error)
-          }
-        }
+    } catch (error) {
+      console.error('Navigation error:', error)
+    }
+  }
 
   // Expose navigation function to parent component
   useEffect(() => {
@@ -223,7 +224,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
       />
 
       {/* Custom CSS for Monaco Editor decorations */}
-      <style jsx global>{`
+      <style>{`
         .monaco-editor .error-squiggly {
           text-decoration: underline wavy #ff6b6b !important;
           text-decoration-thickness: 2px !important;

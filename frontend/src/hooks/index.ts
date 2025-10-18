@@ -18,7 +18,7 @@ export const useNetlistValidation = () => {
         try {
             const response = await apiClient.validateNetlist(netlist)
             return response.validation_result
-        }catch(e){
+        }catch(e: any){
             console.log("handling validation error", e)
             const vr = e.details?.validation_result;
             if (!vr){
