@@ -5,8 +5,6 @@ services:
     image: mongo:7.0
     container_name: netwiz-mongodb
     restart: unless-stopped
-    ports:
-      - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: password
@@ -24,25 +22,13 @@ services:
     ports:
       - "5000:5000"
     environment:
-      # Environment Configuration
       - ENVIRONMENT=production
-      - DEBUG=false
       - HOST=0.0.0.0
       - PORT=5000
-      - RELOAD=false
-      - LOG_LEVEL=INFO
-
-      # Database Configuration
       - MONGODB_URI=mongodb://admin:password@mongodb:27017/netwiz?authSource=admin
       - MONGODB_DATABASE=netwiz
-
-      # CORS Configuration
       - CORS_ORIGINS=*
 
-      # API Configuration
-      - API_PREFIX=/api
-      - DOCS_URL=/docs
-      - REDOC_URL=/redoc
     depends_on:
       - mongodb
     networks:
