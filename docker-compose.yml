@@ -37,7 +37,7 @@ services:
       - MONGODB_DATABASE=netwiz
 
       # CORS Configuration
-      - CORS_ORIGINS=http://frontend:3000,http://localhost:3000
+      - CORS_ORIGINS=*
 
       # API Configuration
       - API_PREFIX=/api

@@ -31,8 +31,8 @@ class NetwizApp:
             title=settings.app_name,
             description=settings.app_description,
             version=settings.app_version,
-            docs_url=settings.docs_url,
-            redoc_url=settings.redoc_url,
+            docs_url="/docs",
+            redoc_url="/redoc",
             debug=settings.debug,
             openapi_url="/openapi.json",
             openapi_tags=[

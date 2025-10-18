@@ -1,6 +1,8 @@
 """
 Configuration management using environment variables
 """
+import os
+
 from dotenv import load_dotenv
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -38,13 +40,17 @@ class Settings(BaseSettings):
     app_status: str = Field(default=__status__, alias="APP_STATUS")
 
     # Environment Configuration
-    environment: str = Field(default="development", alias="ENVIRONMENT")
-    debug: bool = Field(default=True, alias="DEBUG")
+    environment: str = Field(default="prod", alias="ENVIRONMENT")
+    debug: bool = Field(
+        default_factory=lambda: os.environ.get("ENVIRONMENT", "prod") == "development"
+    )
+    reload: bool = Field(
+        default_factory=lambda: os.environ.get("ENVIRONMENT", "prod") == "development"
+    )
 
     # Server Configuration
     host: str = Field(default="0.0.0.0", alias="HOST")
     port: int = Field(default=5000, alias="PORT")
-    reload: bool = Field(default=True, alias="RELOAD")
 
     # Database Configuration (required)
     mongodb_uri: str = Field(alias="MONGODB_URI")
@@ -66,8 +72,6 @@ class Settings(BaseSettings):
 
     # API Configuration
     api_prefix: str = Field(default="/api", alias="API_PREFIX")
-    docs_url: str = Field(default="/docs", alias="DOCS_URL")
-    redoc_url: str = Field(default="/redoc", alias="REDOC_URL")
 
 
 # Create global settings instance
