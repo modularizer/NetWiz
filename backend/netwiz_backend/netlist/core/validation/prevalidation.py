@@ -3,15 +3,17 @@ import pydantic_core
 from netwiz_backend.json_tracker import TrackedJson, TrackedJSONDecodeError
 from netwiz_backend.netlist.core.models import TrackedNetlist
 from netwiz_backend.netlist.core.validation.types import (
+    INVALID_FORMAT,
+    INVALID_JSON,
+    MISSING_FIELD,
     ValidationError,
-    ValidationErrorType,
     ValidationResult,
 )
 
 preapplied_rules = [
-    ValidationErrorType.INVALID_JSON,
-    ValidationErrorType.INVALID_FORMAT,
-    ValidationErrorType.MISSING_FIELD,
+    INVALID_JSON,
+    INVALID_FORMAT,
+    MISSING_FIELD,
 ]
 
 
@@ -41,7 +43,7 @@ def check_is_valid_json(
     """Get ValidationRequest with custom pre-validation"""
     # Step 1: Parse JSON using TrackedJson (primary and only JSON parser)
     try:
-        validation_rules_applied.append(ValidationErrorType.INVALID_JSON)
+        validation_rules_applied.append(INVALID_JSON)
         tracked_json = TrackedJson.loads(json_text, raise_on_error=True)
     except TrackedJSONDecodeError as e:
         # JSON syntax error - TrackedJson provides detailed location info
@@ -50,7 +52,7 @@ def check_is_valid_json(
             errors=[
                 ValidationError(
                     message=f"JSON syntax error: {e.msg}",
-                    error_type=ValidationErrorType.INVALID_JSON,
+                    error_type=INVALID_JSON,
                     location=e.error_loc,
                 )
             ],
@@ -63,7 +65,7 @@ def check_is_valid_json(
             errors=[
                 ValidationError(
                     message=f"Unexpected error parsing JSON: {e!s}",
-                    error_type=ValidationErrorType.INVALID_JSON,
+                    error_type=INVALID_JSON,
                     location=None,
                 )
             ],
@@ -77,7 +79,7 @@ def check_is_valid_json(
             errors=[
                 ValidationError(
                     message="Request data must be an object",
-                    error_type=ValidationErrorType.INVALID_JSON,
+                    error_type=INVALID_JSON,
                     location=None,
                 )
             ],
@@ -89,15 +91,15 @@ def check_is_valid_json(
 def check_basic_format(
     tracked_json: TrackedJson, validation_rules_applied: list
 ) -> tuple[TrackedNetlist | None, ValidationResult | None]:
-    validation_rules_applied.append(ValidationErrorType.INVALID_FORMAT)
-    validation_rules_applied.append(ValidationErrorType.MISSING_FIELD)
+    validation_rules_applied.append(INVALID_FORMAT)
+    validation_rules_applied.append(MISSING_FIELD)
     missing_field_validation_errors = []
     for f in ["components", "nets"]:
         if f not in tracked_json:
             missing_field_validation_errors.append(
                 ValidationError(
                     message=f"Missing required field: {f}",
-                    error_type=ValidationErrorType.MISSING_FIELD,
+                    error_type=MISSING_FIELD,
                     location=tracked_json.location,
                 )
             )
@@ -154,7 +156,7 @@ def localize_pydantic_error(
         validation_errors.append(
             ValidationError(
                 message=msg,
-                error_type=ValidationErrorType.INVALID_FORMAT,
+                error_type=INVALID_FORMAT,
                 location=location_info,
             )
         )
