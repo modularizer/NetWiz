@@ -37,7 +37,7 @@ class NetwizApp:
             openapi_url="/openapi.json",
             openapi_tags=[
                 {"name": "netlist", "description": "Manage PCB netlists"},
-                {"name": "health", "description": "System and health endpoints"},
+                {"name": "system", "description": "System and health endpoints"},
             ],
         )
 
@@ -67,7 +67,7 @@ class NetwizApp:
         self.app.add_exception_handler(Exception, NetwizApp.general_exception_handler)
 
     def _register_openapi_endpoint(self) -> None:
-        self.app.get("/openapi.json")(self.app.openapi)
+        self.app.get("/openapi.json", tags=["system"])(self.app.openapi)
 
     # ── lifecycle (static) ─────────────────────────────────────────────────────
     @staticmethod
