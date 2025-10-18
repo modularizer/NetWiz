@@ -54,30 +54,30 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
     const errorMarkers = validationResult.errors
       ?.filter(error => error.line_number != null && error.line_number > 0)
       ?.map((error) => {
-        console.log('Creating marker for error:', error)
         return {
-        range: {
-          startLineNumber: error.line_number,
-          startColumn: error.character_position || 1,
-          endLineNumber: error.line_number,
-          endColumn: (error.character_position || 1) + 10,
-        },
-        options: {
-          isWholeLine: false,
-          className: 'error-squiggly',
-          hoverMessage: {
-            value: `❌ Error: ${error.message}`,
-            isTrusted: true
-          },
-          glyphMarginClassName: 'error-glyph',
-          minimap: {
-            color: '#ff6b6b',
-            position: 1
-          },
-          overviewRuler: {
-            color: '#ff6b6b',
-            position: 1
-          }
+            range: {
+                startLineNumber: error.line_number,
+                startColumn: error.character_position || 1,
+                endLineNumber: error.line_number,
+                endColumn: (error.character_position || 1) + 10,
+            },
+            options: {
+                isWholeLine: false,
+                className: 'error-squiggly',
+                hoverMessage: {
+                    value: `❌ Error: ${error.message}`,
+                    isTrusted: true
+                },
+                glyphMarginClassName: 'error-glyph',
+                minimap: {
+                    color: '#ff6b6b',
+                    position: 1
+                },
+                overviewRuler: {
+                    color: '#ff6b6b',
+                    position: 1
+                }
+            }
         }
       }) || []
 
