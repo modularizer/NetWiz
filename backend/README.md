@@ -45,8 +45,11 @@ The following will install `netwiz_backend` as a locally installed editable pyth
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
+# Install dependencies
+pip install -r requirements.txt
+
 # Install in development mode
-pip install -e .[dev]
+pip install -e .
 
 # Install pre-commit hooks
 pre-commit install
@@ -159,8 +162,7 @@ backend/
 │       ├── health_check.py      # API health monitoring
 │       └── test_api.py          # API testing suite
 ├── pyproject.toml            # Package configuration (auto-synced from __init__.py)
-├── requirements.txt          # Production dependencies
-├── requirements-dev.txt      # Development dependencies
+├── requirements.txt          # All dependencies (production + development)
 ├── .env.example              # Environment template
 ├── tests/                    # Test suite
 │   ├── unit/                # Unit tests
@@ -280,7 +282,7 @@ sudo systemctl start mongod
 # Ensure virtual environment is activated
 source venv/bin/activate
 # Reinstall in development mode
-pip install -e .[dev]
+pip install -e .
 ```
 
 ### Getting Help

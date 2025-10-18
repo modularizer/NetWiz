@@ -31,7 +31,7 @@ except ImportError as e:
 backend_dir = Path(__file__).parent.parent.parent
 
 
-def parse_requirements_txt(file_path: Path) -> tuple[list[str], list[str]]:
+def parse_requirements_txt(file_path: Path) -> list[str]:
     """
     Parse requirements.txt file and extract dependencies.
 
@@ -39,13 +39,12 @@ def parse_requirements_txt(file_path: Path) -> tuple[list[str], list[str]]:
         file_path: Path to the requirements.txt file
 
     Returns:
-        Tuple of (dependencies, dev_dependencies)
+        List of dependency strings
     """
     dependencies = []
-    dev_dependencies = []
 
     if not file_path.exists():
-        return dependencies, dev_dependencies
+        return dependencies
 
     with open(file_path, encoding="utf-8") as f:
         for line in f:
@@ -58,36 +57,7 @@ def parse_requirements_txt(file_path: Path) -> tuple[list[str], list[str]]:
                 continue
             dependencies.append(line)
 
-    return dependencies, dev_dependencies
-
-
-def parse_requirements_dev_txt(file_path: Path) -> list[str]:
-    """
-    Parse requirements-dev.txt file and extract dev dependencies.
-
-    Args:
-        file_path: Path to the requirements-dev.txt file
-
-    Returns:
-        List of dev dependency strings
-    """
-    dev_dependencies = []
-
-    if not file_path.exists():
-        return dev_dependencies
-
-    with open(file_path, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            # Skip empty lines and comments
-            if not line or line.startswith("#"):
-                continue
-            # Skip include directives
-            if line.startswith("-r ") or line.startswith("--"):
-                continue
-            dev_dependencies.append(line)
-
-    return dev_dependencies
+    return dependencies
 
 
 def parse_init_py(file_path: Path) -> dict[str, Any]:
@@ -140,7 +110,6 @@ def update_pyproject_metadata(
     pyproject_data: dict[str, Any],
     metadata: dict[str, Any],
     dependencies: list[str],
-    dev_dependencies: list[str],
 ) -> dict[str, Any]:
     """
     Update pyproject.toml data with metadata from __init__.py and dependencies from requirements files.
@@ -149,7 +118,6 @@ def update_pyproject_metadata(
         pyproject_data: Current pyproject.toml data
         metadata: Metadata from __init__.py
         dependencies: Dependencies from requirements.txt
-        dev_dependencies: Dev dependencies from requirements-dev.txt
 
     Returns:
         Updated pyproject.toml data
@@ -230,15 +198,6 @@ def update_pyproject_metadata(
             f"Updated dependencies: {len(dependencies)} packages from requirements.txt"
         )
 
-    # Update dev dependencies from requirements-dev.txt
-    if dev_dependencies:
-        if "optional-dependencies" not in pyproject_data["project"]:
-            pyproject_data["project"]["optional-dependencies"] = {}
-        pyproject_data["project"]["optional-dependencies"]["dev"] = dev_dependencies
-        print(
-            f"Updated dev dependencies: {len(dev_dependencies)} packages from requirements-dev.txt"
-        )
-
     return pyproject_data
 
 
@@ -258,7 +217,6 @@ def check_differences(
     init_metadata: dict[str, Any],
     pyproject_data: dict[str, Any],
     dependencies: list[str],
-    dev_dependencies: list[str],
 ) -> bool:
     """
     Check if there are differences between source files and pyproject.toml.
@@ -267,7 +225,6 @@ def check_differences(
         init_metadata: Metadata from __init__.py
         pyproject_data: Data from pyproject.toml
         dependencies: Dependencies from requirements.txt
-        dev_dependencies: Dev dependencies from requirements-dev.txt
 
     Returns:
         True if there are differences, False otherwise
@@ -305,17 +262,6 @@ def check_differences(
     if set(dependencies) != set(pyproject_deps):
         differences.append(
             f"Dependencies: {len(dependencies)} in requirements.txt vs {len(pyproject_deps)} in pyproject.toml"
-        )
-
-    # Check dev dependencies
-    pyproject_dev_deps = (
-        pyproject_data.get("project", {})
-        .get("optional-dependencies", {})
-        .get("dev", [])
-    )
-    if set(dev_dependencies) != set(pyproject_dev_deps):
-        differences.append(
-            f"Dev Dependencies: {len(dev_dependencies)} in requirements-dev.txt vs {len(pyproject_dev_deps)} in pyproject.toml"
         )
 
     if differences:
@@ -371,19 +317,12 @@ Examples:
         help="Path to requirements.txt file (default: requirements.txt)",
     )
 
-    parser.add_argument(
-        "--requirements-dev-file",
-        default="requirements-dev.txt",
-        help="Path to requirements-dev.txt file (default: requirements-dev.txt)",
-    )
-
     args = parser.parse_args()
 
     # Get file paths
     init_file = backend_dir / "netwiz_backend" / args.init_file
     pyproject_file = backend_dir / args.pyproject_file
     requirements_file = backend_dir / args.requirements_file
-    requirements_dev_file = backend_dir / args.requirements_dev_file
 
     # Check if files exist
     if not init_file.exists():
@@ -401,11 +340,7 @@ Examples:
 
         # Parse requirements.txt
         print(f"Reading dependencies from {requirements_file}")
-        dependencies, _ = parse_requirements_txt(requirements_file)
-
-        # Parse requirements-dev.txt
-        print(f"Reading dev dependencies from {requirements_dev_file}")
-        dev_dependencies = parse_requirements_dev_txt(requirements_dev_file)
+        dependencies = parse_requirements_txt(requirements_file)
 
         # Load pyproject.toml
         print(f"Reading {pyproject_file}")
@@ -414,14 +349,12 @@ Examples:
         if args.check:
             # Just check for differences
             has_differences = check_differences(
-                init_metadata, pyproject_data, dependencies, dev_dependencies
+                init_metadata, pyproject_data, dependencies
             )
             sys.exit(1 if has_differences else 0)
 
         # Check for differences
-        has_differences = check_differences(
-            init_metadata, pyproject_data, dependencies, dev_dependencies
-        )
+        has_differences = check_differences(init_metadata, pyproject_data, dependencies)
 
         if not has_differences:
             print("Files are already in sync. No changes needed.")
@@ -430,7 +363,7 @@ Examples:
         if args.dry_run:
             print("\nDry run mode - would make the following changes:")
             updated_data = update_pyproject_metadata(
-                pyproject_data.copy(), init_metadata, dependencies, dev_dependencies
+                pyproject_data.copy(), init_metadata, dependencies
             )
 
             # Show key changes
@@ -446,15 +379,12 @@ Examples:
             print(
                 f"  Dependencies: {len(pyproject_data.get('project', {}).get('dependencies', []))} -> {len(dependencies)}"
             )
-            print(
-                f"  Dev Dependencies: {len(pyproject_data.get('project', {}).get('optional-dependencies', {}).get('dev', []))} -> {len(dev_dependencies)}"
-            )
             sys.exit(0)
 
         # Update pyproject.toml
         print("Updating pyproject.toml...")
         updated_data = update_pyproject_metadata(
-            pyproject_data, init_metadata, dependencies, dev_dependencies
+            pyproject_data, init_metadata, dependencies
         )
         write_pyproject_toml(pyproject_file, updated_data)
 
