@@ -91,14 +91,23 @@ async def get_openapi_schema():
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
     """Handle HTTP exceptions with consistent error format"""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=ErrorResponse(
-            error=exc.detail,
-            message=exc.detail,
-            details={"status_code": exc.status_code},
-        ).model_dump(),
-    )
+    # Check if this is our custom validation response
+    if isinstance(exc.detail, dict) and "validation_result" in exc.detail:
+        # Return our custom validation response directly
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=exc.detail,
+        )
+    else:
+        # Handle regular HTTP exceptions
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=ErrorResponse(
+                error=str(exc.detail),
+                message=str(exc.detail),
+                details={"status_code": exc.status_code},
+            ).model_dump(),
+        )
 
 
 @app.exception_handler(Exception)

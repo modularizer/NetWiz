@@ -51,9 +51,7 @@ class Settings(BaseSettings):
     mongodb_database: str = Field(alias="MONGODB_DATABASE")
 
     # CORS Configuration
-    cors_origins: str = Field(
-        default="http://localhost:3000,http://frontend:3000", alias="CORS_ORIGINS"
-    )
+    cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
 
     @field_validator("cors_origins", mode="after")
     @classmethod

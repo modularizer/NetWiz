@@ -92,10 +92,10 @@ async def api_info():
             },
             "health": "/health",
             "netlist": {
-                "upload": "/api/netlist/upload",
-                "list": "/api/netlist",
-                "get": "/api/netlist/{submission_id}",
-                "validate": "/api/netlist/validate",
+                "upload": "/netlist/upload",
+                "list": "/netlist",
+                "get": "/netlist/{submission_id}",
+                "validate": "/netlist/validate",
             },
         },
     }

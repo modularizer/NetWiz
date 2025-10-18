@@ -115,7 +115,7 @@ class APITester:
         results = {}
 
         # List netlists
-        results["list"] = self.test_endpoint("GET", "/api/netlist")
+        results["list"] = self.test_endpoint("GET", "/netlist")
 
         # Validate netlist (with sample data)
         sample_netlist = {
@@ -140,7 +140,7 @@ class APITester:
         }
 
         results["validate"] = self.test_endpoint(
-            "POST", "/api/netlist/validate", json=sample_netlist
+            "POST", "/netlist/validate", json=sample_netlist
         )
 
         # Upload netlist
@@ -151,7 +151,7 @@ class APITester:
         }
 
         results["upload"] = self.test_endpoint(
-            "POST", "/api/netlist/upload", json=upload_data
+            "POST", "/netlist/upload", json=upload_data
         )
 
         return results

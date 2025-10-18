@@ -11,11 +11,16 @@ This router contains all the core business logic for:
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.requests import Request as FastAPIRequest
+from fastapi.responses import JSONResponse
 from motor.core import AgnosticDatabase
 from pydantic import UUID4
 
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
+from netwiz_backend.netlist.core.json_parser import (
+    parse_netlist_with_locations,
+)
 from netwiz_backend.netlist.core.validation import (
     validate_netlist_internal,
 )
@@ -26,13 +31,169 @@ from netwiz_backend.netlist.models import (
     NetlistUploadRequest,
     NetlistUploadResponse,
     ValidationRequest,
-    ValidationResponse,
 )
 from netwiz_backend.netlist.repository import get_netlist_repository
 from netwiz_backend.tools import get_pagination_params
 
 # Create core netlist router
-router = APIRouter(prefix="/api/netlist", tags=["netlist"])
+router = APIRouter(prefix="/netlist", tags=["netlist"])
+
+
+async def get_raw_json(request: FastAPIRequest) -> str:
+    """Get raw JSON text from request, bypassing Pydantic validation"""
+    body = await request.body()
+    return body.decode("utf-8")
+
+
+async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
+    """Get ValidationRequest with custom pre-validation"""
+    body = await request.body()
+    json_text = body.decode("utf-8")
+
+    # Parse JSON with location tracking
+    parse_result = parse_netlist_with_locations(json_text)
+
+    if not parse_result.success:
+        # Convert JSON parsing errors to ValidationErrors
+        from netwiz_backend.netlist.core.validation import (
+            ValidationError,
+            ValidationErrorType,
+            ValidationResult,
+        )
+
+        validation_errors = [
+            ValidationError(
+                message=f"JSON parsing error: {parse_result.error_message}",
+                error_type=ValidationErrorType.BLANK_COMPONENT_NAME,  # Use a valid enum value
+                line_number=parse_result.error_line,
+                character_position=parse_result.error_position,
+            )
+        ]
+
+        error_result = ValidationResult(
+            is_valid=False, errors=validation_errors, warnings=[], applied_rules=[]
+        )
+        # Raise a custom exception that we'll catch in the endpoint
+        raise HTTPException(
+            status_code=422,  # Use 422 for validation errors
+            detail={"validation_result": error_result.model_dump(mode="json")},
+        )
+
+    # Extract netlist data from the parsed JSON
+    data = parse_result.data
+
+    # Pre-validate structure before creating Netlist object
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "validation_result": {
+                    "is_valid": False,
+                    "errors": [
+                        {
+                            "message": "Request data must be an object",
+                            "error_type": "blank_component_name",
+                            "line_number": None,
+                            "character_position": None,
+                        }
+                    ],
+                    "warnings": [],
+                    "applied_rules": [],
+                }
+            },
+        )
+
+    if "netlist" not in data:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "validation_result": {
+                    "is_valid": False,
+                    "errors": [
+                        {
+                            "message": "Missing required field: netlist",
+                            "error_type": "blank_component_name",
+                            "line_number": None,
+                            "character_position": None,
+                        }
+                    ],
+                    "warnings": [],
+                    "applied_rules": [],
+                }
+            },
+        )
+
+    netlist_data = data["netlist"]
+
+    # Pre-validate structure before creating Netlist object
+    if not isinstance(netlist_data, dict):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "validation_result": {
+                    "is_valid": False,
+                    "errors": [
+                        {
+                            "message": "Netlist data must be an object",
+                            "error_type": "blank_component_name",
+                            "line_number": None,
+                            "character_position": None,
+                        }
+                    ],
+                    "warnings": [],
+                    "applied_rules": [],
+                }
+            },
+        )
+
+    if "components" not in netlist_data:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "validation_result": {
+                    "is_valid": False,
+                    "errors": [
+                        {
+                            "message": "Missing required field: components",
+                            "error_type": "blank_component_name",
+                            "line_number": None,
+                            "character_position": None,
+                        }
+                    ],
+                    "warnings": [],
+                    "applied_rules": [],
+                }
+            },
+        )
+
+    if "nets" not in netlist_data:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "validation_result": {
+                    "is_valid": False,
+                    "errors": [
+                        {
+                            "message": "Missing required field: nets",
+                            "error_type": "blank_component_name",
+                            "line_number": None,
+                            "character_position": None,
+                        }
+                    ],
+                    "warnings": [],
+                    "applied_rules": [],
+                }
+            },
+        )
+
+    # Only create Netlist object if structure is valid
+    from netwiz_backend.netlist.core.models import Netlist
+
+    netlist_obj = Netlist.model_construct(**netlist_data)
+
+    # Create ValidationRequest without validation
+    return ValidationRequest.model_construct(netlist=netlist_obj)
+
 
 # MongoDB storage via repository
 
@@ -150,18 +311,79 @@ async def list_netlists(
     )
 
 
-@router.post("/validate", response_model=ValidationResponse)
-async def validate_netlist(request: ValidationRequest) -> ValidationResponse:
+@router.post("/validate")
+async def validate_netlist(
+    request: ValidationRequest = Depends(get_unvalidated_request)
+) -> JSONResponse:
     """
     Validate a netlist without storing it
 
     This endpoint performs validation on a netlist without storing it in the database.
     Useful for real-time validation in frontend applications.
+
+    Uses custom pre-validation to check JSON structure and return ValidationErrors with
+    line/character numbers, then runs business logic validation if structure is valid.
     """
     try:
+        # Use our custom validation
         validation_result = validate_netlist_internal(request.netlist)
-        return ValidationResponse(validation_result=validation_result)
+        return JSONResponse(
+            status_code=200,
+            content={"validation_result": validation_result.model_dump(mode="json")},
+        )
+
+    except HTTPException as e:
+        # This is our pre-validation error from the dependency
+        if "validation_result" in e.detail:
+            return JSONResponse(status_code=e.status_code, content=e.detail)
+        else:
+            # Fallback for other HTTP exceptions
+            from netwiz_backend.netlist.core.validation import (
+                ValidationError,
+                ValidationErrorType,
+                ValidationResult,
+            )
+
+            error_result = ValidationResult(
+                is_valid=False,
+                errors=[
+                    ValidationError(
+                        message=f"Validation failed: {e.detail}",
+                        error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
+                        line_number=None,
+                        character_position=None,
+                    )
+                ],
+                warnings=[],
+                applied_rules=[],
+            )
+            return JSONResponse(
+                status_code=e.status_code,
+                content={"validation_result": error_result.model_dump(mode="json")},
+            )
+
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Validation failed: {e!s}"
-        ) from e
+        # If there's an unexpected error, return it as a validation error
+        from netwiz_backend.netlist.core.validation import (
+            ValidationError,
+            ValidationErrorType,
+            ValidationResult,
+        )
+
+        error_result = ValidationResult(
+            is_valid=False,
+            errors=[
+                ValidationError(
+                    message=f"Validation failed: {e!s}",
+                    error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
+                    line_number=None,
+                    character_position=None,
+                )
+            ],
+            warnings=[],
+            applied_rules=[],
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"validation_result": error_result.model_dump(mode="json")},
+        )
