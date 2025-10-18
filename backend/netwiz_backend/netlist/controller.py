@@ -11,6 +11,12 @@ from pydantic import UUID4
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
+from netwiz_backend.netlist.core.models import Netlist
+from netwiz_backend.netlist.core.validation.types import (
+    INVALID_FORMAT,
+    ValidationError,
+    ValidationResult,
+)
 from netwiz_backend.netlist.core.validation.validation import (
     validate_basic_format,
     validate_netlist,
@@ -163,7 +169,7 @@ class NetlistController(RouteControllerABC):
         """
         try:
             submission_id = str(uuid.uuid4())
-            validation_result = validate_netlist(request.netlist)
+            validation_result = self._try_validate(request.netlist)
 
             submission = NetlistSubmission(
                 id=submission_id,
@@ -194,18 +200,17 @@ class NetlistController(RouteControllerABC):
         ),  # staticmethod ref
     ) -> JSONResponse:
         """Validate a netlist without storing it in the database."""
-        return await self._validate(lambda: validate_netlist(request.netlist))
+        return await self._validate(request.netlist)
 
     async def validate_json_text(
         self,
         request: TextValidationRequest,
     ) -> JSONResponse:
-        return await self._validate(lambda: validate_netlist_text(request.json_text))
+        return await self._validate(request.json_text)
 
-    async def _validate(self, func):
+    async def _validate(self, netlist: str | dict | Netlist):
         """Validate JSON text directly with better location tracking."""
-        # try:
-        validation_result = func()
+        validation_result = await self._try_validate(netlist)
         if validation_result.is_valid:
             return JSONResponse(
                 status_code=200,
@@ -221,23 +226,23 @@ class NetlistController(RouteControllerABC):
                 }
             },
         )
-        # except Exception as e:
-        #     print(e)
-        #     validation_result = ValidationResult(
-        #         is_valid=False,
-        #         errors=[
-        #             ValidationError(
-        #                 error_type=INVALID_FORMAT,
-        #                 message="Unknown Internal Server Error",
-        #                 severity="error",
-        #             )
-        #         ],
-        #     )
-        #     return JSONResponse(
-        #         status_code=500,
-        #         content={
-        #             "detail": {
-        #                 "validation_result": validation_result.model_dump(mode="json")
-        #             }
-        #         },
-        #     )
+
+    async def _try_validate(self, netlist: str | dict | Netlist):
+        try:
+            validation_result = (
+                validate_netlist_text(netlist)
+                if isinstance(netlist, str)
+                else validate_netlist(netlist)
+            )
+        except Exception:
+            validation_result = ValidationResult(
+                is_valid=False,
+                errors=[
+                    ValidationError(
+                        error_type=INVALID_FORMAT,
+                        message="Unknown Internal Server Error",
+                        severity="error",
+                    )
+                ],
+            )
+        return validation_result
