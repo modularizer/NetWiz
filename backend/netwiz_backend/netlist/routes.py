@@ -10,6 +10,7 @@ This router contains all the core business logic for:
 
 import uuid
 
+import pydantic_core
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.requests import Request as FastAPIRequest
 from fastapi.responses import JSONResponse
@@ -47,149 +48,119 @@ async def get_raw_json(request: FastAPIRequest) -> str:
 
 async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
     """Get ValidationRequest with custom pre-validation"""
+    import json
+
+    from netwiz_backend.netlist.core.validation import (
+        ValidationError,
+        ValidationErrorType,
+        ValidationResult,
+    )
+
     body = await request.body()
     json_text = body.decode("utf-8")
 
-    # Parse JSON with location tracking
-    parse_result = parse_netlist_with_locations(json_text)
-
-    if not parse_result.success:
-        # Convert JSON parsing errors to ValidationErrors
-        from netwiz_backend.netlist.core.validation import (
-            ValidationError,
-            ValidationErrorType,
-            ValidationResult,
-        )
-
+    # Step 1: Basic JSON syntax validation
+    try:
+        data = json.loads(json_text)
+    except json.JSONDecodeError as e:
+        # JSON syntax error - provide line/column info from the exception
         validation_errors = [
             ValidationError(
-                message=f"JSON parsing error: {parse_result.error_message}",
-                error_type=ValidationErrorType.BLANK_COMPONENT_NAME,  # Use a valid enum value
-                line_number=parse_result.error_line,
-                character_position=parse_result.error_position,
+                message=f"JSON syntax error: {e.msg}",
+                error_type=ValidationErrorType.INVALID_JSON,
+                line_number=e.lineno,
+                character_position=e.colno,
             )
         ]
 
         error_result = ValidationResult(
-            is_valid=False, errors=validation_errors, warnings=[], applied_rules=[]
+            is_valid=False,
+            errors=validation_errors,
+            warnings=[],
         )
-        # Raise a custom exception that we'll catch in the endpoint
         raise HTTPException(
-            status_code=422,  # Use 422 for validation errors
+            status_code=422,
+            detail={"validation_result": error_result.model_dump(mode="json")},
+        ) from e
+
+    # Step 2: Check if data is a dict
+    if not isinstance(data, dict):
+        validation_errors = [
+            ValidationError(
+                message="Request data must be an object",
+                error_type=ValidationErrorType.INVALID_JSON,
+                line_number=1,  # Default to line 1 for root object issues
+                character_position=1,
+            )
+        ]
+
+        error_result = ValidationResult(
+            is_valid=False,
+            errors=validation_errors,
+            warnings=[],
+        )
+        raise HTTPException(
+            status_code=422,
             detail={"validation_result": error_result.model_dump(mode="json")},
         )
 
-    # Extract netlist data from the parsed JSON
-    data = parse_result.data
+    missing_field_validation_errors = []
+    for f in ["components", "nets"]:
+        if f not in data:
+            missing_field_validation_errors.append(
+                ValidationError(
+                    message=f"Missing required field: {f}",
+                    error_type=ValidationErrorType.MISSING_FIELD,
+                    line_number=1,  # Default to line 1 for missing fields
+                    character_position=1,
+                )
+            )
 
-    # Pre-validate structure before creating Netlist object
-    if not isinstance(data, dict):
+    if missing_field_validation_errors:
+        error_result = ValidationResult(
+            is_valid=False,
+            errors=missing_field_validation_errors,
+            warnings=[],
+        )
         raise HTTPException(
             status_code=422,
-            detail={
-                "validation_result": {
-                    "is_valid": False,
-                    "errors": [
-                        {
-                            "message": "Request data must be an object",
-                            "error_type": "blank_component_name",
-                            "line_number": None,
-                            "character_position": None,
-                        }
-                    ],
-                    "warnings": [],
-                    "applied_rules": [],
-                }
-            },
+            detail={"validation_result": error_result.model_dump(mode="json")},
         )
 
-    if "netlist" not in data:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "validation_result": {
-                    "is_valid": False,
-                    "errors": [
-                        {
-                            "message": "Missing required field: netlist",
-                            "error_type": "blank_component_name",
-                            "line_number": None,
-                            "character_position": None,
-                        }
-                    ],
-                    "warnings": [],
-                    "applied_rules": [],
-                }
-            },
-        )
-
-    netlist_data = data["netlist"]
-
-    # Pre-validate structure before creating Netlist object
-    if not isinstance(netlist_data, dict):
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "validation_result": {
-                    "is_valid": False,
-                    "errors": [
-                        {
-                            "message": "Netlist data must be an object",
-                            "error_type": "blank_component_name",
-                            "line_number": None,
-                            "character_position": None,
-                        }
-                    ],
-                    "warnings": [],
-                    "applied_rules": [],
-                }
-            },
-        )
-
-    if "components" not in netlist_data:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "validation_result": {
-                    "is_valid": False,
-                    "errors": [
-                        {
-                            "message": "Missing required field: components",
-                            "error_type": "blank_component_name",
-                            "line_number": None,
-                            "character_position": None,
-                        }
-                    ],
-                    "warnings": [],
-                    "applied_rules": [],
-                }
-            },
-        )
-
-    if "nets" not in netlist_data:
-        raise HTTPException(
-            status_code=422,
-            detail={
-                "validation_result": {
-                    "is_valid": False,
-                    "errors": [
-                        {
-                            "message": "Missing required field: nets",
-                            "error_type": "blank_component_name",
-                            "line_number": None,
-                            "character_position": None,
-                        }
-                    ],
-                    "warnings": [],
-                    "applied_rules": [],
-                }
-            },
-        )
-
-    # Only create Netlist object if structure is valid
+    print("here")
+    # Step 7: Now that basic structure is validated, use detailed location tracking
+    parse_result = parse_netlist_with_locations(json_text)
+    str(parse_result)
+    print("parsed")
+    # Create Netlist object using the validated data
     from netwiz_backend.netlist.core.models import Netlist
 
-    netlist_obj = Netlist.model_construct(**netlist_data)
+    try:
+        netlist_obj = Netlist(**data)
+    except pydantic_core.ValidationError as e:
+        validation_errors = []
+        for pydantic_error in e.errors():
+            msg = pydantic_error["msg"]
+            path: list[str | int] = pydantic_error["loc"]
+            print(msg, path)
+            # TODO: get the line number and column number
+            validation_errors.append(
+                ValidationError(
+                    message=msg,
+                    error_type=ValidationErrorType.INVALID_FORMAT,
+                )
+            )
+            error_result = ValidationResult(
+                is_valid=False,
+                errors=validation_errors,
+                warnings=[],
+            )
+            raise HTTPException(
+                status_code=422,
+                detail={"validation_result": error_result.model_dump(mode="json")},
+            ) from e
+
+    print("netlist")
 
     # Create ValidationRequest without validation
     return ValidationRequest.model_construct(netlist=netlist_obj)

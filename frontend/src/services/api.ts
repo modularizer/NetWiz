@@ -132,7 +132,7 @@ class NetWizApiClient {
   ): Promise<ValidationResponse> {
     const response = await this.client.post<ValidationResponse>(
       '/netlist/validate',
-      { netlist }, // Wrap in ValidationRequest format
+      netlist, // Wrap in ValidationRequest format
       {
         headers: {
           'Content-Type': 'application/json',

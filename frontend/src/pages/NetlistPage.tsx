@@ -27,7 +27,7 @@ const NetlistPage: React.FC = () => {
 
   // Sync hook validation result with local state
   useEffect(() => {
-    console.log('Hook validation result changed:', hookValidationResult)
+    console.log('Hook validation result changed:', hookValidationResult, hookValidationResult?.errors)
     if (hookValidationResult) {
       setValidationResult(hookValidationResult)
     }

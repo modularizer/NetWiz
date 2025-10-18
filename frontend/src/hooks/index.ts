@@ -16,11 +16,15 @@ export const useNetlistValidation = () => {
   const mutation = useMutation<ValidationResult, Error, Netlist>({
     mutationFn: async (netlist: Netlist) => {
         try {
-            const response = await apiClient.validateNetlist({netlist})
+            const response = await apiClient.validateNetlist(netlist)
             return response.validation_result
         }catch(e){
             console.log("handling validation error", e)
-            return e.details.validation_result
+            const vr = e.details?.validation_result;
+            if (!vr){
+                throw new Error("No validation result found")
+            }
+            return vr
         }
 
     },

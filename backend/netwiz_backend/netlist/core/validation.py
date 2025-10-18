@@ -71,6 +71,10 @@ class ValidationErrorType(str, Enum):
         UNCONNECTED_COMPONENT: Component is not connected to any net
     """
 
+    INVALID_JSON = "invalid_json"
+    MISSING_FIELD = "missing_field"
+    INVALID_FORMAT = "invalid_format"
+    MISSING_NET_NAME = "missing_net_name"
     BLANK_COMPONENT_NAME = "blank_component_name"
     BLANK_NET_NAME = "blank_net_name"
     DUPLICATE_COMPONENT_NAME = "duplicate_component_name"
