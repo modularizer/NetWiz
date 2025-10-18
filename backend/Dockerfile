@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Set build argument
+ARG ENVIRONMENT=production
+
 # Set Python environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1

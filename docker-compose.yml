@@ -4,12 +4,12 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: netwiz-mongodb
-    restart: unless-stopped
+    restart: "no"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-password}
     volumes:
-      - mongodb_data:/data/db
+      - ${MONGODB_DATA_PATH:-mongodb_data}:/data/db
     networks:
       - netwiz-network
 
@@ -17,17 +17,19 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        - ENVIRONMENT=${ENVIRONMENT:-production}
     container_name: netwiz-backend
-    restart: unless-stopped
+    restart: "no"
     ports:
-      - "5000:5000"
+      - "${BACKEND_PORT:-5000}:${BACKEND_PORT:-5000}"
     environment:
-      - ENVIRONMENT=production
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - HOST=0.0.0.0
-      - PORT=5000
-      - MONGODB_URI=mongodb://admin:password@mongodb:27017/netwiz?authSource=admin
+      - PORT=${BACKEND_PORT:-5000}
+      - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017/netwiz?authSource=admin
       - MONGODB_DATABASE=netwiz
-      - CORS_ORIGINS=*
+      - CORS_ORIGINS=http://frontend:${FRONTEND_PORT:-3000},http://localhost:${FRONTEND_PORT:-3000}
 
     depends_on:
       - mongodb
@@ -44,17 +46,24 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - ENVIRONMENT=${ENVIRONMENT:-production}
     container_name: netwiz-frontend
-    restart: unless-stopped
+    restart: "no"
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:${FRONTEND_PORT:-3000}"
+    environment:
+      - NODE_ENV=${ENVIRONMENT:-production}
+      - PORT=${FRONTEND_PORT:-3000}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - netwiz-network
 
 volumes:
   mongodb_data:
+    external: false
 
 networks:
   netwiz-network:
