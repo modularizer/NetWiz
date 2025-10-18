@@ -105,6 +105,13 @@ class NetlistController(RouteControllerABC):
         submission_id: str,
         database: AgnosticDatabase = Depends(get_database),
     ) -> NetlistGetResponse:
+        """
+        Retrieve a specific netlist submission by ID.
+
+        Fetches a previously uploaded netlist submission from the database using its
+        unique submission ID. Includes netlist data, metadata, validation results,
+        and submission timestamp.
+        """
         repo = get_netlist_repository(database)
         submission = await repo.get_by_id(submission_id)
         if not submission:
@@ -120,6 +127,12 @@ class NetlistController(RouteControllerABC):
         database: AgnosticDatabase = Depends(get_database),
         user_id: UUID4 | None = Query(default=None, description="Filter by user ID"),
     ) -> NetlistListResponse:
+        """
+        List netlist submissions with pagination and optional filtering.
+
+        Retrieves a paginated list of netlist submissions from the database.
+        Results can be filtered by user ID and include pagination metadata.
+        """
         repo = get_netlist_repository(database)
         submissions, total_count = await repo.list(
             user_id=user_id, pagination=pagination
@@ -136,6 +149,13 @@ class NetlistController(RouteControllerABC):
         request: NetlistUploadRequest,
         database: AgnosticDatabase = Depends(get_database),
     ) -> NetlistUploadResponse:
+        """
+        Upload and validate a new netlist submission.
+
+        Accepts a netlist submission, validates it according to PCB design rules,
+        and stores it in the database. Validation includes component connectivity,
+        net integrity, and design rule compliance checks.
+        """
         try:
             submission_id = str(uuid.uuid4())
             validation_result = validate_netlist_internal(request.netlist)
@@ -169,7 +189,11 @@ class NetlistController(RouteControllerABC):
         ),  # staticmethod ref
     ) -> JSONResponse:
         """
-        Validate a netlist without storing it.
+        Validate a netlist without storing it in the database.
+
+        Performs comprehensive validation of a netlist submission without persisting
+        it to the database. Useful for testing netlist validity before submission or
+        validation-only workflows. Includes structural checks and design rule compliance.
         """
         try:
             validation_result = validate_netlist_internal(request.netlist)

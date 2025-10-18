@@ -59,7 +59,12 @@ class SystemController(RouteControllerABC):
         )
 
     async def health_check(self) -> HealthResponse:
-        """Health check endpoint for monitoring and load balancers."""
+        """
+        Health check endpoint for monitoring and load balancers.
+
+        Provides basic health status information for the API service.
+        Used by monitoring systems and load balancers to verify service availability.
+        """
         return HealthResponse(
             status="healthy",
             timestamp=datetime.now(timezone.utc),
@@ -68,7 +73,12 @@ class SystemController(RouteControllerABC):
         )
 
     async def root(self) -> RootResponse:
-        """Root endpoint with basic API information."""
+        """
+        Root endpoint with basic API information.
+
+        Provides essential metadata about the API service including name, version,
+        author, and links to documentation and health check endpoints.
+        """
         return RootResponse(
             message=settings.app_name,
             version=settings.app_version,
@@ -83,7 +93,12 @@ class SystemController(RouteControllerABC):
         )
 
     async def api_info(self) -> ApiInfoResponse:
-        """Detailed API information endpoint."""
+        """
+        Detailed API information endpoint.
+
+        Provides comprehensive information about the API service including detailed
+        metadata, service configuration, and available endpoints for API discovery.
+        """
         return ApiInfoResponse(
             api=ApiInfo(
                 name=settings.app_name,
@@ -105,7 +120,12 @@ class SystemController(RouteControllerABC):
         )
 
     async def kill_server(self) -> KillServerResponse:
-        """Kill the server (development only)."""
+        """
+        Kill the server (development only).
+
+        Initiates a graceful shutdown of the API server. Only available in development
+        mode for safety reasons. Returns 403 Forbidden in production environments.
+        """
         if settings.environment != "development":
             raise HTTPException(
                 status_code=403,

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pydantic import UUID4, BaseModel, Field, constr
 
 from netwiz_backend.netlist.core.models import Netlist
-from netwiz_backend.netlist.core.validation import ValidationResult
+from netwiz_backend.netlist.core.validation.types import ValidationResult
 
 
 class NetlistSubmission(BaseModel):
