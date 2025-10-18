@@ -165,7 +165,7 @@ class Pin(BaseModel):
         }
     }
 
-    number: constr(min_length=1, strip_whitespace=True) = Field(
+    number: constr(strip_whitespace=True) = Field(
         ...,
         description="Pin number or identifier (e.g., '1', 'A1', 'VCC')",
         examples=["1", "A1", "VCC", "GND", "CLK"],
@@ -282,7 +282,7 @@ class Component(BaseModel):
         }
     }
 
-    name: constr(min_length=1, strip_whitespace=True) = Field(
+    name: constr(strip_whitespace=True) = Field(
         ...,
         description="Unique component name",
         examples=["U1", "R5", "C10", "IC1", "CONN1"],
@@ -342,12 +342,12 @@ class NetConnection(BaseModel):
         ```
     """
 
-    component: constr(min_length=1, strip_whitespace=True) = Field(
+    component: constr(strip_whitespace=True) = Field(
         ...,
         description="Component ID this connection belongs to",
         examples=["U1", "R5", "C10", "IC1"],
     )
-    pin: constr(min_length=1, strip_whitespace=True) = Field(
+    pin: constr(strip_whitespace=True) = Field(
         ...,
         description="Pin number on the component",
         examples=["1", "A1", "VCC", "GND"],
@@ -396,7 +396,7 @@ class Net(BaseModel):
         ```
     """
 
-    name: constr(min_length=1, strip_whitespace=True) = Field(
+    name: constr(strip_whitespace=True) = Field(
         ...,
         description="Unique net name",
         examples=["VCC", "GND", "CLK", "DATA", "RESET", "SIGNAL"],

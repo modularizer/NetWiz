@@ -11,7 +11,6 @@ from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleChec
 from netwiz_backend.netlist.core.validation.types import (
     BLANK_COMPONENT_NAME,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -35,7 +34,7 @@ class BlankComponentNameRule(RuleCheckABC):
         for i, component in enumerate(netlist.components):
             if not component.name or not component.name.strip():
                 error = ValidationError(
-                    error_type=ValidationErrorType.BLANK_COMPONENT_NAME,
+                    error_type=BLANK_COMPONENT_NAME,
                     message=f"Component names cannot be blank (Component #{i})",
                     component_id=component.name,
                     severity="error",

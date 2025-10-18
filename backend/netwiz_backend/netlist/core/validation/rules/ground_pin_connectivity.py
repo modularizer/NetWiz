@@ -9,8 +9,8 @@ from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
+    GROUND_PIN_NOT_CONNECTED_TO_GROUND,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -19,7 +19,7 @@ class GroundPinConnectivityRule(RuleCheckABC):
 
     def __init__(self):
         super().__init__(
-            error_types=(ValidationErrorType.GROUND_PIN_NOT_CONNECTED_TO_GROUND,),
+            error_types=(GROUND_PIN_NOT_CONNECTED_TO_GROUND,),
             description="Ground pins must be connected to ground nets",
         )
 
@@ -76,7 +76,7 @@ class GroundPinConnectivityRule(RuleCheckABC):
             if not connected_to_ground:
                 errors.append(
                     ValidationError(
-                        error_type=ValidationErrorType.GROUND_PIN_NOT_CONNECTED_TO_GROUND,
+                        error_type=GROUND_PIN_NOT_CONNECTED_TO_GROUND,
                         message=f"Ground pin {component_name}.{pin_number} is not connected to a ground net",
                         component_id=component_name,
                         severity="error",

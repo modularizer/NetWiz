@@ -9,8 +9,8 @@ from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
+    MISNAMED_NETS,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -19,7 +19,7 @@ class MisnamedNetsRule(RuleCheckABC):
 
     def __init__(self):
         super().__init__(
-            error_types=(ValidationErrorType.MISNAMED_NETS,),
+            error_types=(MISNAMED_NETS,),
             description="Nets may be misnamed",
         )
 
@@ -46,7 +46,7 @@ class MisnamedNetsRule(RuleCheckABC):
             if net_name in name_to_type and net_type != name_to_type[net_name]:
                 warnings.append(
                     ValidationError(
-                        error_type=ValidationErrorType.MISNAMED_NETS,
+                        error_type=MISNAMED_NETS,
                         message=f"Net '{net.name}' has type '{net_type}', are you sure?",
                         net_id=net.name,
                         severity="warning",

@@ -10,8 +10,8 @@ from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
+    DUPLICATE_COMPONENT_NAME,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -20,7 +20,7 @@ class UniqueComponentNameRule(RuleCheckABC):
 
     def __init__(self):
         super().__init__(
-            error_types=(ValidationErrorType.DUPLICATE_COMPONENT_NAME,),
+            error_types=(DUPLICATE_COMPONENT_NAME,),
             description="Component names must be unique within the netlist",
         )
 
@@ -46,7 +46,7 @@ class UniqueComponentNameRule(RuleCheckABC):
                     break
 
             error = ValidationError(
-                error_type=ValidationErrorType.DUPLICATE_COMPONENT_NAME,
+                error_type=DUPLICATE_COMPONENT_NAME,
                 message=f"Component names must be unique ('{name}')",
                 component_id=name,
                 severity="error",

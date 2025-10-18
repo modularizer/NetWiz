@@ -9,8 +9,9 @@ from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
+    INSUFFICIENT_GND_CONNECTIONS,
+    MISSING_GROUND,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -20,8 +21,8 @@ class GroundConnectivityRule(RuleCheckABC):
     def __init__(self):
         super().__init__(
             error_types=(
-                ValidationErrorType.MISSING_GROUND,
-                ValidationErrorType.INSUFFICIENT_GND_CONNECTIONS,
+                MISSING_GROUND,
+                INSUFFICIENT_GND_CONNECTIONS,
             ),
             description="Ground nets should exist and have proper connectivity",
         )
@@ -53,7 +54,7 @@ class GroundConnectivityRule(RuleCheckABC):
         if not all_gnd_nets:
             errors.append(
                 ValidationError(
-                    error_type=ValidationErrorType.MISSING_GROUND,
+                    error_type=MISSING_GROUND,
                     message="No ground nets found",
                     severity="error",
                     location=get_location("$.nets"),
@@ -64,7 +65,7 @@ class GroundConnectivityRule(RuleCheckABC):
             if len(net.connections) < 2:
                 warnings.append(
                     ValidationError(
-                        error_type=ValidationErrorType.INSUFFICIENT_GND_CONNECTIONS,
+                        error_type=INSUFFICIENT_GND_CONNECTIONS,
                         message=f"Ground net '{net.name}' has only {len(net.connections)} connection(s)",
                         net_id=net.name,
                         severity="warning",

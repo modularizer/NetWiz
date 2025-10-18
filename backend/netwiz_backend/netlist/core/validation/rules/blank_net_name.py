@@ -10,8 +10,8 @@ from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
+    BLANK_NET_NAME,
     ValidationError,
-    ValidationErrorType,
 )
 
 
@@ -20,7 +20,7 @@ class BlankNetNameRule(RuleCheckABC):
 
     def __init__(self):
         super().__init__(
-            error_types=(ValidationErrorType.BLANK_NET_NAME,),
+            error_types=(BLANK_NET_NAME,),
             description="Net names cannot be blank or empty",
         )
 
@@ -35,7 +35,7 @@ class BlankNetNameRule(RuleCheckABC):
         for i, net in enumerate(netlist.nets):
             if not net.name or not net.name.strip():
                 error = ValidationError(
-                    error_type=ValidationErrorType.BLANK_NET_NAME,
+                    error_type=BLANK_NET_NAME,
                     message=f"Net names cannot be blank (Net #{i})",
                     net_id=net.name,
                     severity="error",

@@ -227,7 +227,7 @@ class NetlistController(RouteControllerABC):
         #         is_valid=False,
         #         errors=[
         #             ValidationError(
-        #                 error_type=ValidationErrorType.INVALID_FORMAT,
+        #                 error_type=INVALID_FORMAT,
         #                 message="Unknown Internal Server Error",
         #                 severity="error",
         #             )
