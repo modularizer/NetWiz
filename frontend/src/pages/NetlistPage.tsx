@@ -14,20 +14,23 @@ import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
-import { useNetlistValidation } from '@/hooks'
+import { useJsonValidation } from '@/hooks'
 import { testExamples, type TestExample } from '@/utils/testExamples'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
 const NetlistPage: React.FC = () => {
   const [netlist, setNetlist] = useState<Netlist | null>(null)
+  const [jsonText, setJsonText] = useState<string>('')
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
   // Custom hooks for API operations
-  const { validateNetlist, isValidating, validationResult: hookValidationResult } = useNetlistValidation()
+  const { validateJsonText, isValidating, validationResult: hookValidationResult } = useJsonValidation()
 
   // Sync hook validation result with local state
   useEffect(() => {
     console.log('Hook validation result changed:', hookValidationResult, hookValidationResult?.errors)
+    console.log('Hook validation result type:', typeof hookValidationResult)
+    console.log('Hook validation result keys:', hookValidationResult ? Object.keys(hookValidationResult) : 'null')
     if (hookValidationResult) {
       setValidationResult(hookValidationResult)
     }
@@ -45,54 +48,77 @@ const NetlistPage: React.FC = () => {
     }
   }, [])
 
-  // Handle netlist changes from JSON editor
-  const handleNetlistChange = useCallback(async (newNetlist: Netlist) => {
-    console.log('Handling netlist change:', newNetlist)
-    setNetlist(newNetlist)
-    // Trigger validation - the hook will handle both success and error cases
+  // Handle JSON text changes from editor
+  const handleJsonTextChange = useCallback(async (newJsonText: string) => {
+    console.log('Handling JSON text change, length:', newJsonText.length)
+    setJsonText(newJsonText)
+
+    // Try to parse JSON for the netlist state (for graph visualization)
     try {
-      console.log('Calling validateNetlist...')
-      await validateNetlist(newNetlist)
-      console.log('validateNetlist completed')
+      const parsed = JSON.parse(newJsonText)
+      setNetlist(parsed)
     } catch (error) {
-      console.error('Error in handleNetlistChange:', error)
+      // Invalid JSON - clear netlist but keep text
+      setNetlist(null)
     }
-  }, [validateNetlist])
+
+    // Trigger validation with raw JSON text
+    try {
+      console.log('Calling validateJsonText...')
+      await validateJsonText(newJsonText)
+      console.log('validateJsonText completed')
+    } catch (error) {
+      console.error('Error in handleJsonTextChange:', error)
+    }
+  }, [validateJsonText])
 
   // Handle file upload
   const handleFileUpload = useCallback(async (file: File) => {
     try {
       const text = await file.text()
-      const parsed = JSON.parse(text)
-      setNetlist(parsed)
-      // Trigger validation - the hook will handle both success and error cases
-      await validateNetlist(parsed)
+      setJsonText(text)
+
+      // Try to parse for netlist state
+      try {
+        const parsed = JSON.parse(text)
+        setNetlist(parsed)
+      } catch (error) {
+        setNetlist(null)
+      }
+
+      // Trigger validation with raw JSON text
+      await validateJsonText(text)
     } catch (error) {
       console.error('Upload error:', error)
-      // Don't clear validation result - the hook should have handled the error
-      // and returned a validation result if it was a validation error
     }
-  }, [validateNetlist])
+  }, [validateJsonText])
 
   // Manual validation test
   const handleManualValidation = useCallback(async () => {
-    if (!netlist) return
-    console.log('Manual validation triggered for:', netlist)
+    if (!jsonText) return
+    console.log('Manual validation triggered for JSON text, length:', jsonText.length)
     try {
-      await validateNetlist(netlist)
+      await validateJsonText(jsonText)
     } catch (error) {
       console.error('Manual validation error:', error)
     }
-  }, [netlist, validateNetlist])
+  }, [jsonText, validateJsonText])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
       const response = await fetch(`/test-examples/${example.filename}`)
       const text = await response.text()
-      const parsed = JSON.parse(text)
-      setNetlist(parsed)
+      setJsonText(text)
 
-      // Validate the loaded example
-      const result = await validateNetlist(parsed)
+      // Try to parse for netlist state
+      try {
+        const parsed = JSON.parse(text)
+        setNetlist(parsed)
+      } catch (error) {
+        setNetlist(null)
+      }
+
+      // Validate the loaded example with raw JSON text
+      const result = await validateJsonText(text)
       setValidationResult(result)
     } catch (error) {
       console.error('Error loading test example:', error)
@@ -110,19 +136,19 @@ const NetlistPage: React.FC = () => {
         validation_rules_applied: []
       })
     }
-  }, [validateNetlist])
+  }, [validateJsonText])
 
   // Handle manual validation trigger
   const handleValidate = useCallback(async () => {
-    if (!netlist) return
+    if (!jsonText) return
 
     try {
-      const result = await validateNetlist(netlist)
+      const result = await validateJsonText(jsonText)
       setValidationResult(result)
     } catch (error) {
       console.error('Validation error:', error)
     }
-  }, [netlist, validateNetlist])
+  }, [jsonText, validateJsonText])
 
   return (
     <div className="h-screen flex flex-col">
@@ -201,7 +227,7 @@ const NetlistPage: React.FC = () => {
                         </label>
                         <button
                           onClick={handleValidate}
-                          disabled={!netlist || isValidating}
+                          disabled={!jsonText || isValidating}
                           className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Validate netlist"
                         >
@@ -216,8 +242,8 @@ const NetlistPage: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <JsonEditor
-                      value={netlist}
-                      onChange={handleNetlistChange}
+                      value={jsonText}
+                      onChange={handleJsonTextChange}
                       validationResult={validationResult}
                       onNavigateToError={handleNavigateToError}
                     />

@@ -7,7 +7,7 @@ from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
-from netwiz_backend.netlist.core.validation.rule_check_abc import RuleCheckABC
+from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     ValidationError,
     ValidationErrorType,

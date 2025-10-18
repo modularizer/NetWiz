@@ -44,7 +44,7 @@ Example:
 from enum import Enum
 from typing import Any, ClassVar
 
-from pydantic import BaseModel, Field, conlist, constr, field_validator
+from pydantic import BaseModel, Field, conlist, constr
 
 from netwiz_backend.json_tracker import TrackedJson
 
@@ -79,6 +79,7 @@ class PinType(str, Enum):
     PASSIVE = "passive"
     ANALOG = "analog"
     DIGITAL = "digital"
+    DATA = "data"
     CLOCK = "clock"
     RESET = "reset"
     OTHER = "other"
@@ -574,22 +575,6 @@ class Netlist(BaseModel):
     metadata: dict[str, Any] | None = Field(
         default=None, description="Optional additional information about the netlist"
     )
-
-    @field_validator("components")
-    @classmethod
-    def validate_unique_component_names(cls, v):
-        names = [comp.name for comp in v]
-        if len(names) != len(set(names)):
-            raise ValueError("Component names must be unique")
-        return v
-
-    @field_validator("nets")
-    @classmethod
-    def validate_unique_net_names(cls, v):
-        names = [net.name for net in v]
-        if len(names) != len(set(names)):
-            raise ValueError("Net names must be unique")
-        return v
 
 
 class TrackedNetlist(Netlist):

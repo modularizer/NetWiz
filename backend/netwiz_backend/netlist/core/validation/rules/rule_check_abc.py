@@ -74,13 +74,13 @@ class RuleCheckABC(ABC):
         Returns:
             ValidationResult: Complete validation result for this rule
         """
-        applied_rules = applied_rules or []
-        errors = errors or []
-        warnings = warnings or []
+        applied_rules = applied_rules if applied_rules is not None else []
+        errors = errors if errors is not None else []
+        warnings = warnings if warnings is not None else []
         get_location = get_location or (lambda x: None)
 
         # mark the rule as applied
-        applied_rules.extend([t for t in self.error_types if applied_rules not in t])
+        applied_rules.extend([t for t in self.error_types if t not in applied_rules])
 
         # we are taking advantage of the mutability of the lists
         self._check(netlist, errors, warnings, get_location)

@@ -10,11 +10,11 @@
 
 import React, { useRef, useEffect } from 'react'
 import { Editor } from '@monaco-editor/react'
-import type { Netlist, ValidationResult } from '@/types/netlist'
+import type { ValidationResult } from '@/types/netlist'
 
 interface JsonEditorProps {
-  value: Netlist | null
-  onChange: (netlist: Netlist) => void
+  value: string
+  onChange: (jsonText: string) => void
   validationResult?: ValidationResult | null
   onNavigateToError?: (lineNumber: number, characterPosition: number) => void
 }
@@ -22,20 +22,14 @@ interface JsonEditorProps {
 const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResult, onNavigateToError }) => {
   const editorRef = useRef<any>(null)
 
-  // Convert netlist to JSON string
-  const jsonString = value ? JSON.stringify(value, null, 2) : ''
+  // Use the JSON text directly
+  const jsonString = value || ''
 
   // Handle editor changes
   const handleEditorChange = (value: string | undefined) => {
     if (!value) return
-
-    try {
-      const parsed = JSON.parse(value)
-      onChange(parsed)
-    } catch (error) {
-      // Invalid JSON - don't update the netlist
-      console.warn('Invalid JSON:', error)
-    }
+    // Pass the raw JSON text directly
+    onChange(value)
   }
 
   // Set up error markers based on validation results
@@ -171,20 +165,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
   }, [onNavigateToError])
 
   return (
-    <div className="h-full">
-      {/* Test navigation button */}
-      <div className="p-2 bg-gray-100 border-b">
-        <button
-          onClick={() => {
-            console.log('Test button clicked - navigating to line 1, column 1')
-            navigateToError(1, 1)
-          }}
-          className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
-        >
-          Test Navigate to Line 1
-        </button>
-      </div>
-
+    <div className="h-full flex flex-col overflow-hidden">
       <Editor
         height="100%"
         defaultLanguage="json"
@@ -219,6 +200,13 @@ const JsonEditor: React.FC<JsonEditorProps> = ({ value, onChange, validationResu
           bracketPairColorization: { enabled: true },
           glyphMargin: true,
           overviewRulerLanes: 3,
+          scrollbar: {
+            vertical: 'auto',
+            horizontal: 'auto',
+            verticalScrollbarSize: 12,
+            horizontalScrollbarSize: 12,
+          },
+          smoothScrolling: true,
         }}
         theme="vs-light"
       />

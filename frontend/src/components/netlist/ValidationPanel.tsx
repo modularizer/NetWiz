@@ -18,6 +18,10 @@ interface ValidationPanelProps {
 }
 
 const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onNavigateToError }) => {
+  console.log('ValidationPanel received:', validationResult)
+  console.log('ValidationPanel type:', typeof validationResult)
+  console.log('ValidationPanel keys:', validationResult ? Object.keys(validationResult) : 'null')
+
   if (!validationResult) {
     return (
       <div className="h-full flex items-center justify-center bg-gray-50">

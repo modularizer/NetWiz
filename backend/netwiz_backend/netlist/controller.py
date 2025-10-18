@@ -11,11 +11,6 @@ from pydantic import UUID4
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
-from netwiz_backend.netlist.core.validation.types import (
-    ValidationError,
-    ValidationErrorType,
-    ValidationResult,
-)
 from netwiz_backend.netlist.core.validation.validation import (
     validate_basic_format,
     validate_netlist,
@@ -209,39 +204,40 @@ class NetlistController(RouteControllerABC):
 
     async def _validate(self, func):
         """Validate JSON text directly with better location tracking."""
-        try:
-            validation_result = func
-            if validation_result.is_valid:
-                return JSONResponse(
-                    status_code=200,
-                    content={
-                        "validation_result": validation_result.model_dump(mode="json")
-                    },
-                )
+        # try:
+        validation_result = func()
+        if validation_result.is_valid:
             return JSONResponse(
-                status_code=422,
+                status_code=200,
                 content={
-                    "detail": {
-                        "validation_result": validation_result.model_dump(mode="json")
-                    }
+                    "validation_result": validation_result.model_dump(mode="json")
                 },
             )
-        except Exception:
-            validation_result = ValidationResult(
-                is_valid=False,
-                errors=[
-                    ValidationError(
-                        error_type=ValidationErrorType.INVALID_FORMAT,
-                        message="Unknown Internal Server Error",
-                        severity="error",
-                    )
-                ],
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "detail": {
-                        "validation_result": validation_result.model_dump(mode="json")
-                    }
-                },
-            )
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": {
+                    "validation_result": validation_result.model_dump(mode="json")
+                }
+            },
+        )
+        # except Exception as e:
+        #     print(e)
+        #     validation_result = ValidationResult(
+        #         is_valid=False,
+        #         errors=[
+        #             ValidationError(
+        #                 error_type=ValidationErrorType.INVALID_FORMAT,
+        #                 message="Unknown Internal Server Error",
+        #                 severity="error",
+        #             )
+        #         ],
+        #     )
+        #     return JSONResponse(
+        #         status_code=500,
+        #         content={
+        #             "detail": {
+        #                 "validation_result": validation_result.model_dump(mode="json")
+        #             }
+        #         },
+        #     )
