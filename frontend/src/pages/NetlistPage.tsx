@@ -102,7 +102,7 @@ const NetlistPage: React.FC = () => {
   }, [jsonText, validateJsonText])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
-      const response = await fetch(`/test-examples/${example.filename}`)
+      const response = await fetch(`./test-examples/${example.filename}`)
       const text = await response.text()
       setJsonText(text)
 
@@ -157,7 +157,7 @@ const NetlistPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <img
-              src="/logo-full.svg"
+              src="./logo-full.svg"
               alt="NetWiz Logo"
               className="h-12 w-auto"
             />

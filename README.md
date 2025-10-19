@@ -92,6 +92,27 @@ MONGODB_PASSWORD=your-secure-password
 MONGODB_DATA_PATH=./mongodb-data
 ```
 
+### Troubleshooting
+
+**Docker Permission Error?** If you get "Permission denied" errors when running Docker commands:
+
+1. **Quick fix - Use sudo:**
+   ```bash
+   sudo docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+2. **Permanent fix - Add user to docker group:**
+   ```bash
+   sudo usermod -aG docker $USER
+   # Then logout and login again
+   ```
+
+3. **Verify Docker is running:**
+   ```bash
+   docker --version
+   sudo systemctl status docker
+   ```
+
 ## Getting Started
 
 ### Prerequisites
