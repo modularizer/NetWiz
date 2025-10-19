@@ -8,9 +8,11 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
+import { useEffect } from 'react'
 import NetlistPage from '@/pages/NetlistPage'
 import { BackendChecker } from '@/components/BackendChecker'
 import { updateApiBaseUrl } from '@/services/api'
+import { saveBasePath } from '@/utils/basePath'
 import './styles/globals.css'
 
 // Create a client for React Query
@@ -25,6 +27,11 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  // Detect and save the base path on app load
+  useEffect(() => {
+    saveBasePath()
+  }, [])
+
   const handleApiUrlChange = (newUrl: string) => {
     updateApiBaseUrl(newUrl)
   }

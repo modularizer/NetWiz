@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { AlertCircle, CheckCircle, Download } from 'lucide-react'
+import { withBasePath } from '@/utils/basePath'
 
 interface BackendStatus {
   accessible: boolean
@@ -117,7 +118,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <img
-              src="/logo-full.svg"
+              src={withBasePath('logo-full.svg')}
               alt="NetWiz Logo"
               className="h-12 w-auto"
             />
