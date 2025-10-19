@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, CheckCircle, Download } from 'lucide-react'
+import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
 
 interface BackendStatus {
   accessible: boolean
@@ -9,11 +9,13 @@ interface BackendStatus {
 
 interface BackendCheckerProps {
   onApiUrlChange: (url: string) => void
+  onBackendStatusChange: (isAvailable: boolean) => void
 }
 
-export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }) => {
+export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, onBackendStatusChange }) => {
   const [status, setStatus] = useState<BackendStatus | null>(null)
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
   const defaultApiUrl = `http://localhost:${defaultBackendPort}`
 
@@ -34,7 +36,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
     const url = apiUrl || defaultApiUrl
 
     try {
-      const response = await fetch(`${url}/health`, {
+      const response = await fetch(`${url}/`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -43,18 +45,24 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
 
       if (response.ok) {
         const data = await response.json()
-        const isNetWiz = data.app_name === 'NetWiz' || data.app_name === 'netwiz_backend'
+        const isNetWiz = data.message === 'PCB Netlist Visualizer + Validator'
 
         setStatus({
           accessible: true,
           isNetWiz,
         })
+
+        // Notify parent component that backend is available
+        if (isNetWiz) {
+          onBackendStatusChange(true)
+        }
       } else {
         setStatus({
           accessible: false,
           isNetWiz: false,
           error: `HTTP ${response.status}: ${response.statusText}`,
         })
+        onBackendStatusChange(false)
       }
     } catch (error) {
       setStatus({
@@ -62,6 +70,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
         isNetWiz: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       })
+      onBackendStatusChange(false)
     } finally {
       setLoading(false)
     }
@@ -75,6 +84,16 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
     checkBackendStatus(newUrl)
   }
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000) // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy text: ', err)
+    }
+  }
+
   const getDockerInstructions = () => (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
       <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
@@ -83,9 +102,26 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
       </h3>
       <div className="text-sm text-gray-700 space-y-2">
         <p><strong>Option 1: One-liner (No file saved)</strong></p>
-        <code className="block bg-gray-200 p-2 rounded text-xs">
-          curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
-        </code>
+        <div
+          className="block bg-gray-200 p-2 rounded text-xs cursor-pointer hover:bg-gray-300 transition-colors relative group"
+          onClick={() => copyToClipboard('curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up')}
+        >
+          <code className="select-none">
+            curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
+          </code>
+          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {copied ? (
+              <Check className="w-3 h-3 text-green-600" />
+            ) : (
+              <Copy className="w-3 h-3 text-gray-600" />
+            )}
+          </div>
+          {copied && (
+            <div className="absolute -top-8 right-0 bg-green-600 text-white text-xs px-2 py-1 rounded shadow-lg">
+              Copied!
+            </div>
+          )}
+        </div>
 
         <p><strong>Option 2: Host the backend another way</strong></p>
         <p>See <a href="https://github.com/modularizer/NetWiz" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">https://github.com/modularizer/NetWiz</a> for more information.</p>
