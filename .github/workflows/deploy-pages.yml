@@ -43,6 +43,14 @@ jobs:
         BASE_URL: /NetWiz/
         BACKEND_BASE_URL: https://your-backend-domain.com
 
+    - name: Copy public assets manually
+      run: |
+        cd frontend
+        echo "=== Copying public directory contents ==="
+        cp -r public/* dist/ 2>/dev/null || echo "No public directory or copy failed"
+        echo "=== Public directory contents ==="
+        ls -la public/ 2>/dev/null || echo "No public directory found"
+
     - name: Debug build output
       run: |
         cd frontend
