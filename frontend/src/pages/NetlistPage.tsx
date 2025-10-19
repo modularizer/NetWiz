@@ -16,7 +16,6 @@ import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
 import { useJsonValidation } from '@/hooks'
 import { testExamples, type TestExample } from '@/utils/testExamples'
-import { withBasePath } from '@/utils/basePath'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
 const NetlistPage: React.FC = () => {
@@ -103,7 +102,7 @@ const NetlistPage: React.FC = () => {
   }, [jsonText, validateJsonText])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
-      const response = await fetch(withBasePath(`test-examples/${example.filename}`))
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}test-examples/${example.filename}`)
       const text = await response.text()
       setJsonText(text)
 
@@ -158,7 +157,7 @@ const NetlistPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <img
-              src={withBasePath('logo-full.svg')}
+              src={`${import.meta.env.VITE_BASE_URL}logo-full.svg`}
               alt="NetWiz Logo"
               className="h-12 w-auto"
             />
