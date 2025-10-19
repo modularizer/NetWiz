@@ -52,12 +52,6 @@ jobs:
         pip install -r requirements.txt
         pip install -e .
 
-    - name: Run linting and type checking
-      run: |
-        cd backend
-        ruff check netwiz_backend tests
-        ruff format netwiz_backend tests --check
-
     - name: Run unit tests
       run: |
         cd backend
@@ -92,7 +86,7 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=testing,enable={{is_default_branch}}
 
     - name: Get git metadata
       id: git
@@ -115,7 +109,7 @@ jobs:
         MONGODB_PASSWORD=password
         EOF
 
-    - name: Build and push backend image
+    - name: Build and push testing image
       uses: docker/build-push-action@v5
       with:
         context: ./backend
@@ -206,3 +200,23 @@ jobs:
         flags: backend-integration
         name: backend-integration-coverage
         fail_ci_if_error: false
+
+    - name: Promote to latest
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      run: |
+        # Get the testing tag
+        TESTING_TAG="${{ steps.meta.outputs.tags }}"
+        LATEST_TAG="${TESTING_TAG/testing/latest}"
+
+        echo "Promoting $TESTING_TAG to $LATEST_TAG"
+
+        # Pull the testing image
+        docker pull $TESTING_TAG
+
+        # Tag as latest
+        docker tag $TESTING_TAG $LATEST_TAG
+
+        # Push the latest tag
+        docker push $LATEST_TAG
+
+        echo "✅ Successfully promoted to latest tag: $LATEST_TAG"

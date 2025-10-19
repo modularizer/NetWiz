@@ -79,7 +79,7 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=testing,enable={{is_default_branch}}
 
     - name: Get git metadata
       id: git
@@ -109,7 +109,7 @@ jobs:
         }
         EOF
 
-    - name: Build and push frontend image
+    - name: Build and push testing image
       uses: docker/build-push-action@v5
       with:
         context: ./frontend
@@ -195,3 +195,23 @@ jobs:
         kill $PREVIEW_PID
 
         echo "✅ Production build test passed!"
+
+    - name: Promote to latest
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      run: |
+        # Get the testing tag
+        TESTING_TAG="${{ steps.meta.outputs.tags }}"
+        LATEST_TAG="${TESTING_TAG/testing/latest}"
+
+        echo "Promoting $TESTING_TAG to $LATEST_TAG"
+
+        # Pull the testing image
+        docker pull $TESTING_TAG
+
+        # Tag as latest
+        docker tag $TESTING_TAG $LATEST_TAG
+
+        # Push the latest tag
+        docker push $LATEST_TAG
+
+        echo "✅ Successfully promoted to latest tag: $LATEST_TAG"
