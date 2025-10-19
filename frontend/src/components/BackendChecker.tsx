@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
 import { useBasePath } from '@/contexts/BasePathContext'
+import { DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
 
 interface BackendStatus {
   accessible: boolean
@@ -18,7 +19,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const { withBasePath } = useBasePath()
-  const defaultApiUrl = `http://localhost:5000`
+  const defaultApiUrl = DEFAULT_API_URL
 
   // Auto-check state
   const [checkInterval, setCheckInterval] = useState(5000) // Start with 5 seconds
@@ -27,7 +28,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
 
   // Load saved API URL from localStorage
   const [customApiUrl, setCustomApiUrl] = useState(() => {
-    const saved = localStorage.getItem('netwiz-api-url')
+    const saved = localStorage.getItem(API_URL_STORAGE_KEY)
     return saved || ''
   })
 
@@ -152,7 +153,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const handleApiUrlChange = (newUrl: string) => {
     setCustomApiUrl(newUrl)
     // Save to localStorage
-    localStorage.setItem('netwiz-api-url', newUrl)
+    localStorage.setItem(API_URL_STORAGE_KEY, newUrl)
     onApiUrlChange(newUrl)
     resetCheckInterval() // Reset to fast checking
     checkBackendStatus(newUrl)

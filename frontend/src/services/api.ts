@@ -44,13 +44,18 @@ export interface ApiError {
 }
 
 // Configuration
+const DEFAULT_API_URL = 'http://localhost:5000'
+const API_URL_STORAGE_KEY = 'netwiz-api-url'
+
 const getApiBaseUrl = () => {
   // Check localStorage for cached API URL first
-  const cachedUrl = localStorage.getItem('netwiz-api-url')
+  const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
   if (cachedUrl) {
     return cachedUrl
   }
-  return `http://localhost:5000`
+
+  // Fallback to default localhost URL
+  return DEFAULT_API_URL
 }
 
 let API_BASE_URL = getApiBaseUrl()
@@ -219,6 +224,9 @@ class NetWizApiClient {
 
 // Create and export singleton instance
 export const apiClient = new NetWizApiClient()
+
+// Export the default API URL and storage key for use in other components
+export { DEFAULT_API_URL, API_URL_STORAGE_KEY }
 
 // Export types for use in components
 export type {

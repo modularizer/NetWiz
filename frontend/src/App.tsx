@@ -11,7 +11,7 @@ import { ReactQueryDevtools } from 'react-query/devtools'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import NetlistPage from '@/pages/NetlistPage'
 import { BackendChecker } from '@/components/BackendChecker'
-import { updateApiBaseUrl } from '@/services/api'
+import { updateApiBaseUrl, DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
 import { BasePathProvider, useBasePath } from '@/contexts/BasePathContext'
 import './styles/globals.css'
 
@@ -64,9 +64,8 @@ function App() {
   // Health check function
   const performHealthCheck = useCallback(async () => {
     // Use cached API URL from localStorage, fallback to default
-    const cachedUrl = localStorage.getItem('netwiz-api-url')
-    const defaultApiUrl = `http://localhost:5000`
-    const apiUrl = cachedUrl || defaultApiUrl
+    const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
+    const apiUrl = cachedUrl || DEFAULT_API_URL
 
     try {
       console.log('App: Performing health check at:', `${apiUrl}/`)
@@ -124,9 +123,8 @@ function App() {
     const checkInitialBackend = async () => {
       console.log('App: Starting initial backend check')
       // Use cached API URL from localStorage, fallback to default
-      const cachedUrl = localStorage.getItem('netwiz-api-url')
-      const defaultApiUrl = `http://localhost:5000`
-      const apiUrl = cachedUrl || defaultApiUrl
+      const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
+      const apiUrl = cachedUrl || DEFAULT_API_URL
 
       try {
         console.log('App: Checking backend at:', `${apiUrl}/`)
