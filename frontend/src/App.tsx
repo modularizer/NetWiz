@@ -8,7 +8,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
-import { useState } from 'react'
 import NetlistPage from '@/pages/NetlistPage'
 import { BackendChecker } from '@/components/BackendChecker'
 import { updateApiBaseUrl } from '@/services/api'
@@ -26,10 +25,7 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000')
-
   const handleApiUrlChange = (newUrl: string) => {
-    setApiUrl(newUrl)
     updateApiBaseUrl(newUrl)
   }
 
