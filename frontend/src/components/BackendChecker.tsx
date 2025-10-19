@@ -87,11 +87,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
           curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
         </code>
 
-        <p><strong>Option 1b: Download file first (if one-liner fails)</strong></p>
-        <code className="block bg-gray-200 p-2 rounded text-xs">
-          curl -O https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml && docker-compose -f docker-compose.prod.yml up -d
-        </code>
-
         <p><strong>Option 2: Host the backend another way</strong></p>
         <p>See <a href="https://github.com/modularizer/NetWiz" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">https://github.com/modularizer/NetWiz</a> for more information.</p>
 
@@ -122,7 +117,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <img
-              src="./logo-full.svg"
+              src="/logo-full.svg"
               alt="NetWiz Logo"
               className="h-12 w-auto"
             />

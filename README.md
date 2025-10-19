@@ -47,19 +47,7 @@ Want to run NetWiz without cloning the repository? Just download and run the Doc
 curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
 ```
 
-### Option 1b: Download file first (if one-liner fails)
-
-1. **Download the compose file:**
-   ```bash
-   curl -O https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml
-   ```
-
-2. **Start NetWiz:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up -d
-   ```
-
-3. **Access the application:**
+**Access the application:**
    - **Frontend**: https://modularizer.github.io/NetWiz/
    - **Backend API**: http://localhost:5000
    - **API Docs**: http://localhost:5000/docs
