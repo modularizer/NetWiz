@@ -41,7 +41,13 @@ The application supports netlist files containing:
 
 Want to run NetWiz without cloning the repository? Just download and run the Docker containers:
 
-### Option 1: Using Docker Compose (Recommended)
+### Option 1: One-liner (No file saved)
+
+```bash
+curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
+```
+
+### Option 1b: Download file first (if one-liner fails)
 
 1. **Download the compose file:**
    ```bash

@@ -82,12 +82,14 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
         Run Backend with Docker (No Source Code Required)
       </h3>
       <div className="text-sm text-gray-700 space-y-2">
-        <p><strong>Option 1: Download and run production compose file (Recommended)</strong></p>
+        <p><strong>Option 1: One-liner (No file saved)</strong></p>
         <code className="block bg-gray-200 p-2 rounded text-xs">
-          curl -O https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml
+          curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
         </code>
+
+        <p><strong>Option 1b: Download file first (if one-liner fails)</strong></p>
         <code className="block bg-gray-200 p-2 rounded text-xs">
-          docker-compose -f docker-compose.prod.yml up -d
+          curl -O https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml && docker-compose -f docker-compose.prod.yml up -d
         </code>
 
         <p><strong>Option 2: Host the backend another way</strong></p>
@@ -114,13 +116,33 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
   }
 
   return (
-    <div className="space-y-4">
-      {/* Status Display */}
-      <div className={`p-4 border rounded-lg ${
-        status?.accessible && status?.isNetWiz
-          ? 'bg-green-50 border-green-200'
-          : 'bg-red-50 border-red-200'
-      }`}>
+    <div className="h-screen flex flex-col">
+      {/* Header */}
+      <header className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300 px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <img
+              src="./logo-full.svg"
+              alt="NetWiz Logo"
+              className="h-12 w-auto"
+            />
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">NetWiz</h1>
+              <p className="text-sm text-gray-500">PCB Netlist Visualizer + Validator</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto p-6">
+        <div className="space-y-4">
+          {/* Status Display */}
+          <div className={`p-4 border rounded-lg ${
+            status?.accessible && status?.isNetWiz
+              ? 'bg-green-50 border-green-200'
+              : 'bg-red-50 border-red-200'
+          }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             {status?.accessible && status?.isNetWiz ? (
@@ -186,6 +208,8 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   )
 }
