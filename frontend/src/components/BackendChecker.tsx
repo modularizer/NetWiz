@@ -23,7 +23,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
 
   // Auto-check state
   const [checkInterval, setCheckInterval] = useState(5000) // Start with 5 seconds
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const intervalRef = useRef<number | null>(null)
   const lastUserActionRef = useRef<number>(Date.now())
 
   // Load saved API URL from localStorage
@@ -69,7 +69,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
           onBackendStatusChange(true)
           // Stop auto-checking when backend is found
           if (intervalRef.current) {
-            clearInterval(intervalRef.current)
+            window.clearInterval(intervalRef.current)
             intervalRef.current = null
           }
         }
@@ -113,10 +113,10 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
 
     const startAutoCheck = () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+        window.clearInterval(intervalRef.current)
       }
 
-      intervalRef.current = setInterval(() => {
+      intervalRef.current = window.setInterval(() => {
         checkBackendStatus(undefined, true)
 
         // Decay the interval: 5s -> 10s -> 20s -> 30s -> 60s (max)
@@ -137,7 +137,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
 
     return () => {
       if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+        window.clearInterval(intervalRef.current)
         intervalRef.current = null
       }
     }
