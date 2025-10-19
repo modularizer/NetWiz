@@ -43,6 +43,16 @@ jobs:
         BASE_URL: /NetWiz/
         BACKEND_BASE_URL: https://your-backend-domain.com
 
+    - name: Debug build output
+      run: |
+        cd frontend
+        echo "=== Build output contents ==="
+        ls -la dist/
+        echo "=== Assets in dist ==="
+        ls -la dist/*.svg dist/*.png dist/*.ico 2>/dev/null || echo "No assets found"
+        echo "=== Test examples ==="
+        ls -la dist/test-examples/ 2>/dev/null || echo "No test-examples found"
+
     - name: Upload build artifacts
       uses: actions/upload-pages-artifact@v3
       with:
