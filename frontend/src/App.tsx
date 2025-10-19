@@ -8,11 +8,11 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import NetlistPage from '@/pages/NetlistPage'
 import { BackendChecker } from '@/components/BackendChecker'
 import { updateApiBaseUrl } from '@/services/api'
-import { BasePathProvider } from '@/contexts/BasePathContext'
+import { BasePathProvider, useBasePath } from '@/contexts/BasePathContext'
 import './styles/globals.css'
 
 // Create a client for React Query
@@ -26,9 +26,31 @@ const queryClient = new QueryClient({
   },
 })
 
+// Router component that uses base path context
+const AppRouter: React.FC = () => {
+  const { basePath } = useBasePath()
+
+  // Convert base path to basename format for React Router
+  // /NetWiz/ -> /NetWiz, / -> /
+  const basename = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
+
+  console.log('AppRouter: Using basename:', basename)
+
+  return (
+    <Router basename={basename}>
+      <Routes>
+        <Route path="/" element={<NetlistPage />} />
+        <Route path="/netlist" element={<NetlistPage />} />
+        {/* Add more routes as needed */}
+      </Routes>
+    </Router>
+  )
+}
+
 function App() {
   const [backendAvailable, setBackendAvailable] = useState(false)
   const [isCheckingBackend, setIsCheckingBackend] = useState(true)
+  const healthCheckIntervalRef = useRef<number | null>(null)
 
   const handleApiUrlChange = (newUrl: string) => {
     updateApiBaseUrl(newUrl)
@@ -38,6 +60,62 @@ function App() {
     setBackendAvailable(isAvailable)
     setIsCheckingBackend(false)
   }
+
+  // Health check function
+  const performHealthCheck = useCallback(async () => {
+    const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
+    const defaultApiUrl = `http://localhost:${defaultBackendPort}`
+
+    try {
+      console.log('App: Performing health check at:', `${defaultApiUrl}/`)
+      const response = await fetch(`${defaultApiUrl}/`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const isNetWiz = data.message === 'PCB Netlist Visualizer + Validator'
+
+        if (!isNetWiz) {
+          console.log('App: Health check failed - not NetWiz backend')
+          setBackendAvailable(false)
+        }
+        // If isNetWiz is true, keep backendAvailable as true
+      } else {
+        console.log('App: Health check failed - HTTP error:', response.status)
+        setBackendAvailable(false)
+      }
+    } catch (error) {
+      console.log('App: Health check failed - network error:', error)
+      setBackendAvailable(false)
+    }
+  }, [])
+
+  // Start health checks when backend becomes available
+  useEffect(() => {
+    if (backendAvailable) {
+      console.log('App: Starting health checks every 5 seconds')
+      healthCheckIntervalRef.current = window.setInterval(performHealthCheck, 5000)
+    } else {
+      // Stop health checks when backend is not available
+      if (healthCheckIntervalRef.current) {
+        console.log('App: Stopping health checks')
+        window.clearInterval(healthCheckIntervalRef.current)
+        healthCheckIntervalRef.current = null
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (healthCheckIntervalRef.current) {
+        window.clearInterval(healthCheckIntervalRef.current)
+        healthCheckIntervalRef.current = null
+      }
+    }
+  }, [backendAvailable, performHealthCheck])
 
   // Initial backend check
   useEffect(() => {
@@ -124,13 +202,7 @@ function App() {
   return (
     <BasePathProvider>
       <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<NetlistPage />} />
-            <Route path="/netlist" element={<NetlistPage />} />
-            {/* Add more routes as needed */}
-          </Routes>
-        </Router>
+        <AppRouter />
         <ReactQueryDevtools initialIsOpen={false} />
       </QueryClientProvider>
     </BasePathProvider>
