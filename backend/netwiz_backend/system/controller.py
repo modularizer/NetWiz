@@ -50,7 +50,7 @@ class SystemController(RouteControllerABC):
         return EndpointsInfo(
             documentation=DocumentationInfo(
                 swagger_ui=f"{self.prefix}/docs",
-                redoc=settings.redoc_url,
+                redoc=f"{self.prefix}/redoc",
                 openapi_json=f"{self.prefix}/openapi.json",
             ),
             health=f"{self.prefix}/health",

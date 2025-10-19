@@ -140,7 +140,7 @@ jobs:
         CONTAINER_ID=$(docker run -d \
           -e MONGODB_URI=mongodb://test:test@localhost:27017/test \
           -e MONGODB_DATABASE=test \
-          -e CORS_ORIGINS=http://localhost:3000 \
+          -e CORS_ORIGINS=* \
           -p 5000:5000 \
           ${{ steps.meta.outputs.tags }})
 
