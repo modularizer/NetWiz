@@ -1,0 +1,54 @@
+{
+  "components": [
+    {
+      "name": "U1",
+      "type": "IC",
+      "pins": [
+        {
+          "number": "1",
+          "name": "VCC",
+          "type": "power"
+        },
+        {
+          "number": "2",
+          "name": "GND",
+          "type": "ground"
+        }
+      ]
+    },
+    {
+      "name": "U1",
+      "type": "RESISTOR",
+      "pins": [
+        {
+          "number": "1",
+          "type": "passive"
+        },
+        {
+          "number": "2",
+          "type": "passive"
+        }
+      ]
+    }
+  ],
+  "nets": [
+    {
+      "name": "VCC",
+      "connections": [
+        {
+          "component": "U1",
+          "pin": "1"
+        }
+      ]
+    },
+    {
+      "name": "VCC",
+      "connections": [
+        {
+          "component": "U1",
+          "pin": "2"
+        }
+      ]
+    }
+  ]
+}

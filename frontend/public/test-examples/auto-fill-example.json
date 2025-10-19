@@ -1,0 +1,56 @@
+{
+  "components": [
+    {
+      "name": "U1",
+      "type": "IC",
+      "pins": [
+        {
+          "number": "1",
+          "name": "VCC",
+          "type": "power"
+        },
+        {
+          "number": "2",
+          "name": "GND",
+          "type": "ground"
+        },
+        {
+          "number": "3",
+          "name": "CLK",
+          "type": "clock"
+        }
+      ]
+    }
+  ],
+  "nets": [
+    {
+      "name": "VCC",
+      "connections": [
+        {
+          "component": "U1",
+          "pin": "1"
+        }
+      ],
+      "net_type": "power"
+    },
+    {
+      "name": "GND",
+      "connections": [
+        {
+          "component": "U1",
+          "pin": "2"
+        }
+      ],
+      "net_type": "ground"
+    },
+    {
+      "name": "CLK_32K",
+      "connections": [
+        {
+          "component": "U1",
+          "pin": "3"
+        }
+      ]
+    }
+  ]
+}
