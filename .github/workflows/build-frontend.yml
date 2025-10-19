@@ -8,12 +8,14 @@ on:
       - 'frontend/**'
       - 'docker-compose.local.yml'
       - '.github/workflows/build-frontend.yml'
+      - '.github/workflows/deployment-tests.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'frontend/**'
       - 'docker-compose.local.yml'
       - '.github/workflows/build-frontend.yml'
+      - '.github/workflows/deployment-tests.yml'
 
 env:
   REGISTRY: ghcr.io
@@ -79,7 +81,6 @@ jobs:
           type=ref,event=pr
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=raw,value=testing,enable={{is_default_branch}}
 
     - name: Get git metadata
       id: git
@@ -199,17 +200,17 @@ jobs:
     - name: Promote to latest
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       run: |
-        # Get the testing tag
-        TESTING_TAG="${{ steps.meta.outputs.tags }}"
-        LATEST_TAG="${TESTING_TAG/testing/latest}"
+        # Get the main branch tag (which is our testing tag)
+        MAIN_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main"
+        LATEST_TAG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
 
-        echo "Promoting $TESTING_TAG to $LATEST_TAG"
+        echo "Promoting $MAIN_TAG to $LATEST_TAG"
 
-        # Pull the testing image
-        docker pull $TESTING_TAG
+        # Pull the main branch image
+        docker pull $MAIN_TAG
 
         # Tag as latest
-        docker tag $TESTING_TAG $LATEST_TAG
+        docker tag $MAIN_TAG $LATEST_TAG
 
         # Push the latest tag
         docker push $LATEST_TAG
