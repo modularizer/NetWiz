@@ -3,6 +3,7 @@ Ground Pin Connectivity validation rule.
 
 This rule checks that ground pins are connected to ground nets.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

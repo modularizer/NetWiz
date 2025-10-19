@@ -1,0 +1,208 @@
+name: Build and Push Backend Container
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.prod.yml'
+      - 'docker-compose.local.yml'
+      - '.github/workflows/build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'docker-compose.prod.yml'
+      - 'docker-compose.local.yml'
+      - '.github/workflows/build.yml'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: modularizer/netwiz-backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
+
+    - name: Run linting and type checking
+      run: |
+        cd backend
+        ruff check netwiz_backend tests
+        ruff format netwiz_backend tests --check
+
+    - name: Run unit tests
+      run: |
+        cd backend
+        pytest tests/unit/ -v --cov=netwiz_backend --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend-unit
+        name: backend-coverage
+        fail_ci_if_error: false
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Get git metadata
+      id: git
+      run: |
+        echo "commit_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_OUTPUT
+        echo "tag=$(git describe --tags --exact-match 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+        echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+        echo "build_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+        echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+    - name: Create .env file
+      run: |
+        cat > .env << EOF
+        ENVIRONMENT=production
+        FRONTEND_PORT=3000
+        BACKEND_PORT=5000
+        MONGODB_USER=admin
+        MONGODB_PASSWORD=password
+        EOF
+
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        file: ./backend/Dockerfile
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          ENVIRONMENT=production
+          GIT_COMMIT_HASH=${{ steps.git.outputs.commit_hash }}
+          GIT_COMMIT_SHORT=${{ steps.git.outputs.commit_short }}
+          GIT_BRANCH=${{ steps.git.outputs.branch }}
+          GIT_TAG=${{ steps.git.outputs.tag }}
+          BUILD_TIME=${{ steps.git.outputs.build_time }}
+          BUILD_REF=${{ steps.git.outputs.build_ref }}
+          BUILD_SHA=${{ steps.git.outputs.build_sha }}
+
+    - name: Test Docker image
+      if: github.event_name != 'pull_request'
+      run: |
+        # Test that the image can be pulled and run
+        docker pull ${{ steps.meta.outputs.tags }}
+
+        # Test basic container startup
+        CONTAINER_ID=$(docker run -d \
+          -e MONGODB_URI=mongodb://test:test@localhost:27017/test \
+          -e MONGODB_DATABASE=test \
+          -e CORS_ORIGINS=http://localhost:3000 \
+          -p 5000:5000 \
+          ${{ steps.meta.outputs.tags }})
+
+        # Wait for container to start
+        sleep 10
+
+        # Test health endpoint
+        curl -f http://localhost:5000/health || exit 1
+
+        # Test root endpoint includes git metadata
+        ROOT_RESPONSE=$(curl -s http://localhost:5000/)
+        echo "Root endpoint response: $ROOT_RESPONSE"
+        echo "$ROOT_RESPONSE" | jq -e '.git' || echo "Warning: Git metadata not found in root endpoint"
+
+        # Test API info endpoint
+        curl -f http://localhost:5000/info || exit 1
+
+        # Test OpenAPI endpoint
+        curl -f http://localhost:5000/openapi.json || exit 1
+
+        # Clean up
+        docker stop $CONTAINER_ID
+        docker rm $CONTAINER_ID
+
+        echo "✅ All integration tests passed!"
+
+    - name: Run integration tests
+      if: github.event_name != 'pull_request'
+      run: |
+        cd backend
+        # Start a test MongoDB container for integration tests
+        docker run -d --name test-mongodb \
+          -e MONGO_INITDB_ROOT_USERNAME=test \
+          -e MONGO_INITDB_ROOT_PASSWORD=test \
+          -p 27017:27017 \
+          mongo:latest
+
+        # Wait for MongoDB to be ready
+        sleep 15
+
+        # Set environment variables for integration tests
+        export MONGODB_URI="mongodb://test:test@localhost:27017"
+        export MONGODB_DATABASE="test"
+        export CORS_ORIGINS="http://localhost:3000"
+
+        # Run integration tests
+        pytest tests/integration/ -v --cov=netwiz_backend --cov-append --cov-report=xml --cov-report=term-missing
+
+        # Clean up MongoDB container
+        docker stop test-mongodb
+        docker rm test-mongodb
+
+    - name: Upload integration test coverage
+      if: github.event_name != 'pull_request'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: backend-integration
+        name: backend-integration-coverage
+        fail_ci_if_error: false

@@ -3,6 +3,7 @@ Unique Name Across Types validation rule.
 
 This rule checks that component names and net names don't conflict with each other.
 """
+
 from collections import Counter
 from collections.abc import Callable
 

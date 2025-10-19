@@ -3,6 +3,7 @@ Unique Net Name validation rule.
 
 This rule checks that all net names are unique within the netlist.
 """
+
 from collections import Counter
 from collections.abc import Callable
 

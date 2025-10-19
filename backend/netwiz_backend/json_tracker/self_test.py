@@ -114,7 +114,7 @@ def self_test_locations(
             is_container = loc.kind in {"object", "list"}
             if not is_container and child_paths:
                 problems.append(
-                    f"{path}: primitive value has children: {child_paths[:5]}{'…' if len(child_paths)>5 else ''}"
+                    f"{path}: primitive value has children: {child_paths[:5]}{'…' if len(child_paths) > 5 else ''}"
                 )
 
             if is_container:

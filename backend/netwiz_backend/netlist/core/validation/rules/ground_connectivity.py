@@ -3,6 +3,7 @@ Ground Connectivity validation rule.
 
 This rule checks for ground nets and their connectivity requirements.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

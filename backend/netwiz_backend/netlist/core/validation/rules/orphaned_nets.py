@@ -3,6 +3,7 @@ Orphaned Nets validation rule.
 
 This rule checks for nets that are not connected to any components.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

@@ -20,6 +20,18 @@ except ImportError:
         )
 
 
+class GitMetadata(BaseModel):
+    """Git metadata information"""
+
+    commit_hash: str | None = Field(default=None, description="Full git commit hash")
+    commit_short: str | None = Field(default=None, description="Short git commit hash")
+    branch: str | None = Field(default=None, description="Git branch name")
+    tag: str | None = Field(default=None, description="Git tag (if any)")
+    build_time: str | None = Field(default=None, description="Build timestamp")
+    build_ref: str | None = Field(default=None, description="GitHub build reference")
+    build_sha: str | None = Field(default=None, description="GitHub build SHA")
+
+
 class HealthResponse(BaseModel):
     """Health check response model"""
 
@@ -50,6 +62,7 @@ class RootResponse(BaseModel):
         ..., description="Health check endpoint"
     )
     environment: constr(strip_whitespace=True) = Field(..., description="Environment")
+    git: GitMetadata | None = Field(default=None, description="Git build metadata")
 
 
 class ApiInfo(BaseModel):

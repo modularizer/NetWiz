@@ -1,7 +1,14 @@
 FROM python:3.11-slim
 
-# Set build argument
+# Set build arguments
 ARG ENVIRONMENT=production
+ARG GIT_COMMIT_HASH=""
+ARG GIT_COMMIT_SHORT=""
+ARG GIT_BRANCH=""
+ARG GIT_TAG=""
+ARG BUILD_TIME=""
+ARG BUILD_REF=""
+ARG BUILD_SHA=""
 
 # Set Python environment variables
 ENV PYTHONUNBUFFERED=1
@@ -26,6 +33,17 @@ COPY . .
 
 # Install the package in editable mode to make scripts available
 RUN pip install -e .
+
+# Create git metadata file
+RUN echo "{\n\
+  \"commit_hash\": \"${GIT_COMMIT_HASH}\",\n\
+  \"commit_short\": \"${GIT_COMMIT_SHORT}\",\n\
+  \"branch\": \"${GIT_BRANCH}\",\n\
+  \"tag\": \"${GIT_TAG}\",\n\
+  \"build_time\": \"${BUILD_TIME}\",\n\
+  \"build_ref\": \"${BUILD_REF}\",\n\
+  \"build_sha\": \"${BUILD_SHA}\"\n\
+}" > /app/netwiz_backend/git_metadata.json
 
 # Create non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && \

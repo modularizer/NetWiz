@@ -1,6 +1,7 @@
 """
 MongoDB database service for NetWiz using dependency injection
 """
+
 from collections.abc import AsyncGenerator
 
 from motor.core import AgnosticClient, AgnosticDatabase

@@ -3,6 +3,7 @@ Blank Component Name validation rule.
 
 This rule checks that all component names are not blank or empty.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

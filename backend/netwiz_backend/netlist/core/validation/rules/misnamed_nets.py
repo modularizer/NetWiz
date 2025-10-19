@@ -3,6 +3,7 @@ Misnamed Nets validation rule.
 
 This rule checks for nets that might be misnamed based on their connectivity patterns.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

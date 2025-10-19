@@ -3,6 +3,7 @@ Unconnected Components validation rule.
 
 This rule checks for components that have pins not connected to any nets.
 """
+
 from collections.abc import Callable
 
 from netwiz_backend.json_tracker.types import LocationInfo

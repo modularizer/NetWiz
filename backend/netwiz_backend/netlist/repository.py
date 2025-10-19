@@ -2,7 +2,6 @@
 Repository for netlist operations using dependency injection
 """
 
-
 from motor.core import AgnosticDatabase
 from pydantic import UUID4
 

@@ -18,7 +18,7 @@ preapplied_rules = [
 
 
 def validate_basic_format(
-    json_text: str
+    json_text: str,
 ) -> tuple[TrackedNetlist | None, ValidationResult | None]:
     """Get ValidationRequest with custom pre-validation"""
     validation_rules_applied = []

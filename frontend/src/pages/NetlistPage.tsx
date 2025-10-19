@@ -14,6 +14,7 @@ import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
+import VersionInfo from '@/components/VersionInfo'
 import { useJsonValidation } from '@/hooks'
 import { testExamples, type TestExample } from '@/utils/testExamples'
 import { useBasePath } from '@/contexts/BasePathContext'
@@ -167,6 +168,9 @@ const NetlistPage: React.FC = () => {
               <h1 className="text-xl font-semibold text-gray-900">NetWiz</h1>
               <p className="text-sm text-gray-500">PCB Netlist Visualizer + Validator</p>
             </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <VersionInfo />
           </div>
         </div>
       </header>

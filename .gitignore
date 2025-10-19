@@ -3,6 +3,9 @@
 !.gitignore
 !.gitkeep
 !.github/
+mongodb/
+mongodb-init/
+frontend/public/version.json
 
 # Python
 __pycache__/

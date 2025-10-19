@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from netwiz_backend.config import settings
 from netwiz_backend.controller_abc import RouteControllerABC
+from netwiz_backend.git_metadata import get_git_metadata
 from netwiz_backend.system.models import (
     ApiInfo,
     ApiInfoResponse,
@@ -79,6 +80,8 @@ class SystemController(RouteControllerABC):
         Provides essential metadata about the API service including name, version,
         author, and links to documentation and health check endpoints.
         """
+        git_metadata = get_git_metadata()
+
         return RootResponse(
             message=settings.app_name,
             version=settings.app_version,
@@ -90,6 +93,7 @@ class SystemController(RouteControllerABC):
             docs=f"{self.prefix}/docs",
             health=f"{self.prefix}/health",
             environment=settings.environment,
+            git=git_metadata,
         )
 
     async def api_info(self) -> ApiInfoResponse:
