@@ -12,18 +12,18 @@ export function detectBasePath(): string {
     return '/'
   }
 
-  const pathname = window.location.pathname
-
-  // If we're at the root, return '/'
-  if (pathname === '/') {
-    return '/'
+  // If we're at the homepage root, return the base path from location.href
+  if (window.location.pathname === '/' || window.location.pathname === '/NetWiz/') {
+    const url = new URL(window.location.href)
+    return url.pathname === '/' ? '/' : '/NetWiz/'
   }
 
-  // Extract the base path (everything before the last segment)
-  // For GitHub Pages: /NetWiz/ -> /NetWiz/
-  // For local dev: / -> /
-  const segments = pathname.split('/').filter(Boolean)
+  // Otherwise, extract the base path from the URL
+  const url = new URL(window.location.href)
+  const pathname = url.pathname
 
+  // Extract the base path - everything up to the last segment
+  const segments = pathname.split('/').filter(Boolean)
   if (segments.length === 0) {
     return '/'
   }

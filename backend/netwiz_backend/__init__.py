@@ -6,7 +6,7 @@ A proof-of-concept application for visualizing and validating PCB netlist data.
 
 __version__ = "1.0.0"
 __author__ = "NetWiz Team"
-__email__ = "modularizer@netwiz.com"
+__email__ = "modularizer@gmail.com"
 __description__ = "PCB Netlist Visualizer + Validator Backend API"
 __license__ = "MIT"
 __url__ = "https://github.com/modularizer/netwiz"

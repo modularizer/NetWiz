@@ -48,7 +48,7 @@ class SystemController(RouteControllerABC):
     def get_endpoints(self) -> EndpointsInfo:
         return EndpointsInfo(
             documentation=DocumentationInfo(
-                swagger_ui=settings.docs_url,
+                swagger_ui=f"{self.prefix}/docs",
                 redoc=settings.redoc_url,
                 openapi_json=f"{self.prefix}/openapi.json",
             ),
@@ -87,7 +87,7 @@ class SystemController(RouteControllerABC):
             license=settings.app_license,
             url=settings.app_url,
             status=settings.app_status,
-            docs=settings.docs_url,
+            docs=f"{self.prefix}/docs",
             health=f"{self.prefix}/health",
             environment=settings.environment,
         )

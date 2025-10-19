@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
+import { useBasePath } from '@/contexts/BasePathContext'
 
 interface BackendStatus {
   accessible: boolean
@@ -16,8 +17,14 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const [status, setStatus] = useState<BackendStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const { withBasePath } = useBasePath()
   const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
   const defaultApiUrl = `http://localhost:${defaultBackendPort}`
+
+  // Auto-check state
+  const [checkInterval, setCheckInterval] = useState(5000) // Start with 5 seconds
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const lastUserActionRef = useRef<number>(Date.now())
 
   // Load saved API URL from localStorage
   const [customApiUrl, setCustomApiUrl] = useState(() => {
@@ -25,9 +32,15 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     return saved || ''
   })
 
-  const checkBackendStatus = useCallback(async (apiUrl?: string) => {
-    setLoading(true)
-    const url = apiUrl || defaultApiUrl
+  const checkBackendStatus = useCallback(async (apiUrl?: string, isAutoCheck = false) => {
+    if (isAutoCheck) {
+      console.log('BackendChecker: Auto-checking backend...')
+    } else {
+      console.log('BackendChecker: Manual check with apiUrl =', apiUrl)
+    }
+
+    const url = apiUrl || customApiUrl || defaultApiUrl
+    console.log('BackendChecker: Using URL =', url)
 
     try {
       const response = await fetch(`${url}/`, {
@@ -37,9 +50,13 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         },
       })
 
+      console.log('BackendChecker: Response status:', response.status)
+
       if (response.ok) {
         const data = await response.json()
+        console.log('BackendChecker: Response data:', data)
         const isNetWiz = data.message === 'PCB Netlist Visualizer + Validator'
+        console.log('BackendChecker: Is NetWiz?', isNetWiz)
 
         setStatus({
           accessible: true,
@@ -48,9 +65,16 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
 
         // Notify parent component that backend is available
         if (isNetWiz) {
+          console.log('BackendChecker: Notifying parent that backend is available')
           onBackendStatusChange(true)
+          // Stop auto-checking when backend is found
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current)
+            intervalRef.current = null
+          }
         }
       } else {
+        console.log('BackendChecker: Response not OK:', response.status, response.statusText)
         setStatus({
           accessible: false,
           isNetWiz: false,
@@ -59,6 +83,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         onBackendStatusChange(false)
       }
     } catch (error) {
+      console.log('BackendChecker: Fetch error:', error)
       setStatus({
         accessible: false,
         isNetWiz: false,
@@ -66,13 +91,62 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
       })
       onBackendStatusChange(false)
     } finally {
-      setLoading(false)
+      if (!isAutoCheck) {
+        setLoading(false)
+      }
     }
-  }, [defaultApiUrl, onBackendStatusChange])
+  }, [defaultApiUrl, customApiUrl, onBackendStatusChange])
 
+  // Reset check interval to fast (5s) after user actions
+  const resetCheckInterval = useCallback(() => {
+    console.log('BackendChecker: Resetting check interval to 5s due to user action')
+    setCheckInterval(5000)
+    lastUserActionRef.current = Date.now()
+  }, [])
+
+  // Auto-checking effect with decaying intervals
   useEffect(() => {
-    // Use saved API URL if available, otherwise use default
+    // Only auto-check if backend is not available
+    if (status?.accessible && status?.isNetWiz) {
+      return
+    }
+
+    const startAutoCheck = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+
+      intervalRef.current = setInterval(() => {
+        checkBackendStatus(undefined, true)
+
+        // Decay the interval: 5s -> 10s -> 20s -> 30s -> 60s (max)
+        setCheckInterval(prev => {
+          const timeSinceLastAction = Date.now() - lastUserActionRef.current
+          if (timeSinceLastAction < 10000) { // Less than 10s since last action
+            return 5000 // Keep at 5s
+          }
+
+          const nextInterval = Math.min(prev * 1.5, 60000) // Cap at 60s
+          console.log(`BackendChecker: Auto-check interval decaying to ${nextInterval}ms`)
+          return nextInterval
+        })
+      }, checkInterval)
+    }
+
+    startAutoCheck()
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+    }
+  }, [checkBackendStatus, checkInterval, status])
+
+  // Initial check on mount
+  useEffect(() => {
     const apiUrl = customApiUrl || defaultApiUrl
+    console.log('BackendChecker: Initial check triggered')
     checkBackendStatus(apiUrl)
   }, [customApiUrl, defaultApiUrl, checkBackendStatus])
 
@@ -81,18 +155,50 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     // Save to localStorage
     localStorage.setItem('netwiz-api-url', newUrl)
     onApiUrlChange(newUrl)
+    resetCheckInterval() // Reset to fast checking
     checkBackendStatus(newUrl)
   }
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000) // Reset after 2 seconds
+      // Check if clipboard API is available
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000) // Reset after 2 seconds
+        resetCheckInterval() // Reset to fast checking after copying
+      } else {
+        // Fallback for older browsers or non-HTTPS contexts
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+
+        try {
+          const successful = document.execCommand('copy')
+          if (successful) {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+            resetCheckInterval() // Reset to fast checking after copying
+          } else {
+            console.warn('Failed to copy text using fallback method')
+          }
+        } catch (err) {
+          console.warn('Fallback copy failed:', err)
+        } finally {
+          document.body.removeChild(textArea)
+        }
+      }
     } catch (err) {
       console.error('Failed to copy text: ', err)
     }
   }
+
+  const oneliner = 'f=$(mktemp) && curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o $f && trap "docker-compose -f $f down --rmi all --volumes --remove-orphans; rm $f" EXIT && docker-compose -f $f up'
 
   const getDockerInstructions = () => (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
@@ -104,10 +210,10 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         <p><strong>Option 1: One-liner (No file saved)</strong></p>
         <div
           className="block bg-gray-200 p-2 rounded text-xs cursor-pointer hover:bg-gray-300 transition-colors relative group"
-          onClick={() => copyToClipboard('curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up --rm --volumes')}
+          onClick={() => copyToClipboard(oneliner)}
         >
           <code className="select-none">
-            curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up --rm --volumes
+              {oneliner}
           </code>
           <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {copied ? (
@@ -127,20 +233,26 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         <p>See <a href="https://github.com/modularizer/NetWiz" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline">https://github.com/modularizer/NetWiz</a> for more information.</p>
 
         <div className="mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
-          <strong>⚠️ Docker Permission Error?</strong> If you get "Permission denied" errors:
-          <br />• Run with sudo: <code className="bg-yellow-100 px-1 rounded">sudo docker-compose -f docker-compose.prod.yml up</code>
-          <br />• Or add your user to docker group: <code className="bg-yellow-100 px-1 rounded">sudo usermod -aG docker $USER</code> (then logout/login)
+          <strong>⚠️ Docker Permission Error?</strong>
+          <br />• Add your user to docker group: <code className="bg-yellow-100 px-1 rounded">sudo usermod -aG docker $USER</code> then <code  className="bg-yellow-100 px-1 rounded">newgrp docker</code>
+            <br />• Or run with sudo (not recommended)
         </div>
       </div>
     </div>
   )
 
   if (loading) {
+    const currentUrl = customApiUrl || defaultApiUrl
     return (
       <div className="p-4 border rounded-lg bg-blue-50 border-blue-200">
         <div className="flex items-center">
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-          <span className="text-blue-800">Checking backend connection...</span>
+          <div>
+            <span className="text-blue-800">Checking backend connection...</span>
+            <div className="text-xs text-blue-600 mt-1">
+              Checking: <code className="bg-blue-100 px-1 rounded">{currentUrl}/</code>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -153,7 +265,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <img
-              src={`${import.meta.env.VITE_BASE_URL}logo-full.svg`}
+              src={withBasePath('logo-full.svg')}
               alt="NetWiz Logo"
               className="h-12 w-auto"
             />

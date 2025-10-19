@@ -3,10 +3,10 @@ name = "netwiz_backend"
 version = "1.0.0"
 description = "PCB Netlist Visualizer + Validator Backend API"
 authors = [
-    { name = "NetWiz Team", email = "modularizer@netwiz.com" },
+    { name = "NetWiz Team", email = "modularizer@gmail.com" },
 ]
 maintainers = [
-    { name = "NetWiz Team", email = "modularizer@netwiz.com" },
+    { name = "NetWiz Team", email = "modularizer@gmail.com" },
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

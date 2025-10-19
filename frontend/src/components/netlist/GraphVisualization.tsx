@@ -10,6 +10,7 @@
 
 import React, { useRef, useEffect } from 'react'
 import * as d3 from 'd3'
+import { useBasePath } from '@/contexts/BasePathContext'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
 interface GraphVisualizationProps {
@@ -19,6 +20,7 @@ interface GraphVisualizationProps {
 
 const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, validationResult }) => {
   const svgRef = useRef<SVGSVGElement>(null)
+  const { withBasePath } = useBasePath()
 
   useEffect(() => {
     if (!netlist || !svgRef.current) return
@@ -160,7 +162,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
             <img
-              src={`${import.meta.env.VITE_BASE_URL}logo.svg`}
+              src={withBasePath('logo.svg')}
               alt="NetWiz Logo"
               className="w-8 h-8"
             />
