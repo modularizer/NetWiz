@@ -1,0 +1,45 @@
+# PCB Netlist Visualizer + Validator
+![img.png](docs/img.png)
+## Task
+Build a small, proof-of-concept application which lets users:
+
+- [ ] Allow users to upload a simple [netlist](https://en.wikipedia.org/wiki/Netlist) file formatted as JSON
+  - [x] Define a schema for the netlist json
+    - [x] schema lists components w/pins
+    - [x] schema lists nets
+    - [x] schema specifies connections between nets and components
+  - [x] setup upload endpoint and functionality
+  - [ ] test upload endpoint and functionality
+  - [ ] pivot to using the upload endpoint and therefore saving each submission
+
+- [x] Allow users to visualize (SVG, Canvas, etc) the netlist as a graph where:
+  - [x] Nodes are components (ICs, resistors, connectors, etc)
+  - [x] Edges are electrical connections (nets)
+
+- [x] Validate submitted netlist data conforms to a series of basic rules like:
+  - [x] **Name** data must not be blank
+  - [x] **GND** must be connected to all relevant components
+
+- [ ] Store submissions in a database (e.g. MongoDB)
+  - [x] setup
+  - [ ] test
+- [ ] add users to support per-user requirements
+  - [ ] JWT auth
+  - [ ] users and sessions in mongodb
+  - [ ] admin and non-admin users
+- [ ] Display list of submissions per-user
+- [ ] Display validation results per-submission, highlighting violations
+
+## Requirements
+
+- [x] **Must use client ↔ server architecture**
+- [x] **Must run locally to facilitate live development and review**
+- [x] **Must be deployable + runnable in common cloud hosting services (e.g. AWS) using a docker container**
+
+## Extras
+- [ ] make the graph visualization nicer
+  - [ ] add footprints
+  - [ ] add component symbols
+---
+
+*Note: This is an example prompt and is not authoritative.*
