@@ -42,11 +42,7 @@ services:
       - netwiz-network
 
   frontend:
-    build:
-      context: ghcr.io/modularizer/netwiz-frontend:latest
-      dockerfile: Dockerfile
-      args:
-        - ENVIRONMENT=${ENVIRONMENT:-production}
+    image: ghcr.io/modularizer/netwiz-frontend:latest
     container_name: netwiz-frontend
     restart: unless-stopped
     ports:
