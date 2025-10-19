@@ -41,6 +41,9 @@ class HealthResponse(BaseModel):
     environment: constr(strip_whitespace=True) = Field(
         ..., description="Environment (development/production)"
     )
+    mongodb: constr(strip_whitespace=True) | None = Field(
+        None, description="MongoDB connection status"
+    )
 
 
 class RootResponse(BaseModel):

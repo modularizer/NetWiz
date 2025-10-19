@@ -66,11 +66,27 @@ class SystemController(RouteControllerABC):
         Provides basic health status information for the API service.
         Used by monitoring systems and load balancers to verify service availability.
         """
+        # Check MongoDB connectivity
+        mongodb_status = "unknown"
+        overall_status = "healthy"
+
+        try:
+            if self.netlist_controller and hasattr(self.netlist_controller, "database"):
+                # Test MongoDB connection
+                await self.netlist_controller.database.client.admin.command("ping")
+                mongodb_status = "connected"
+            else:
+                mongodb_status = "not_configured"
+        except Exception as e:
+            mongodb_status = f"error: {str(e)[:50]}"
+            overall_status = "unhealthy"
+
         return HealthResponse(
-            status="healthy",
+            status=overall_status,
             timestamp=datetime.now(timezone.utc),
             version=settings.app_version,
             environment=settings.environment,
+            mongodb=mongodb_status,
         )
 
     async def root(self) -> RootResponse:

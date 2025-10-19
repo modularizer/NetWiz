@@ -1,16 +1,16 @@
 name: Deployment Tests
 
 on:
-  workflow_run:
-    workflows: ["Build and Push Backend Container", "Build and Push Frontend Container", "Deploy Frontend to GitHub Pages"]
-    types: [completed]
-    branches: [main]
   workflow_dispatch:
 
 jobs:
   deployment-tests:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME_BACKEND: modularizer/netwiz-backend
+      IMAGE_NAME_FRONTEND: modularizer/netwiz-frontend
 
     steps:
     - name: Checkout code
@@ -23,6 +23,34 @@ jobs:
         echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
         echo "Build commit hash: $(git rev-parse HEAD)"
         echo "Build commit short: $(git rev-parse --short HEAD)"
+
+    - name: Verify required images exist
+      run: |
+        echo "🔍 Verifying all required images are available..."
+
+        # Check if backend image exists
+        BACKEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:main"
+        echo "Checking backend image: $BACKEND_IMAGE"
+        if docker manifest inspect $BACKEND_IMAGE >/dev/null 2>&1; then
+          echo "✅ Backend image exists"
+        else
+          echo "❌ Backend image not found: $BACKEND_IMAGE"
+          echo "Waiting for backend build to complete..."
+          exit 1
+        fi
+
+        # Check if frontend image exists
+        FRONTEND_IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:main"
+        echo "Checking frontend image: $FRONTEND_IMAGE"
+        if docker manifest inspect $FRONTEND_IMAGE >/dev/null 2>&1; then
+          echo "✅ Frontend image exists"
+        else
+          echo "❌ Frontend image not found: $FRONTEND_IMAGE"
+          echo "Waiting for frontend build to complete..."
+          exit 1
+        fi
+
+        echo "✅ All required images are available"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -52,8 +80,15 @@ jobs:
         # Test backend health
         echo "Testing backend health..."
         for i in {1..10}; do
-          if curl -f http://localhost:5000/health; then
+          if HEALTH_RESPONSE=$(curl -s http://localhost:5000/health); then
             echo "✅ Backend health check passed"
+            echo "Health response: $HEALTH_RESPONSE"
+            # Check if MongoDB is connected
+            if echo "$HEALTH_RESPONSE" | jq -e '.mongodb == "connected"' >/dev/null 2>&1; then
+              echo "✅ MongoDB connection verified"
+            else
+              echo "⚠️  MongoDB status: $(echo "$HEALTH_RESPONSE" | jq -r '.mongodb // "unknown"')"
+            fi
             break
           else
             echo "⏳ Backend not ready yet, attempt $i/10..."
@@ -103,8 +138,15 @@ jobs:
         # Test backend health
         echo "Testing backend health..."
         for i in {1..10}; do
-          if curl -f http://localhost:5000/health; then
+          if HEALTH_RESPONSE=$(curl -s http://localhost:5000/health); then
             echo "✅ Backend health check passed"
+            echo "Health response: $HEALTH_RESPONSE"
+            # Check if MongoDB is connected
+            if echo "$HEALTH_RESPONSE" | jq -e '.mongodb == "connected"' >/dev/null 2>&1; then
+              echo "✅ MongoDB connection verified"
+            else
+              echo "⚠️  MongoDB status: $(echo "$HEALTH_RESPONSE" | jq -r '.mongodb // "unknown"')"
+            fi
             break
           else
             echo "⏳ Backend not ready yet, attempt $i/10..."
