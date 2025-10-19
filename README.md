@@ -44,7 +44,7 @@ Want to run NetWiz without cloning the repository? Just download and run the Doc
 ### Option 1: One-liner (No file saved)
 
 ```bash
-curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
+curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
 ```
 
 **Access the application:**

@@ -85,7 +85,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
       <div className="text-sm text-gray-700 space-y-2">
         <p><strong>Option 1: One-liner (No file saved)</strong></p>
         <code className="block bg-gray-200 p-2 rounded text-xs">
-          curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up -d
+          curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
         </code>
 
         <p><strong>Option 2: Host the backend another way</strong></p>
@@ -93,7 +93,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange }
 
         <div className="mt-3 p-2 bg-yellow-50 rounded text-xs text-yellow-800">
           <strong>⚠️ Docker Permission Error?</strong> If you get "Permission denied" errors:
-          <br />• Run with sudo: <code className="bg-yellow-100 px-1 rounded">sudo docker-compose -f docker-compose.prod.yml up -d</code>
+          <br />• Run with sudo: <code className="bg-yellow-100 px-1 rounded">sudo docker-compose -f docker-compose.prod.yml up</code>
           <br />• Or add your user to docker group: <code className="bg-yellow-100 px-1 rounded">sudo usermod -aG docker $USER</code> (then logout/login)
         </div>
       </div>
