@@ -160,7 +160,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 rounded-full flex items-center justify-center">
             <img
-              src="/logo.svg"
+              src={`${import.meta.env.VITE_BASE_URL}logo.svg`}
               alt="NetWiz Logo"
               className="w-8 h-8"
             />
