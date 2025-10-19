@@ -29,7 +29,7 @@ The frontend build process:
 ### 🌐 Production URLs
 
 - **Frontend**: `https://modularizer.github.io/netwiz/`
-- **Backend API**: `https://your-backend-domain.com/api`
+- **Backend API**: `http://localhost:5000`
 
 ### 📁 File Structure
 

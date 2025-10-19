@@ -18,8 +18,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const { withBasePath } = useBasePath()
-  const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
-  const defaultApiUrl = `http://localhost:${defaultBackendPort}`
+  const defaultApiUrl = `http://localhost:5000`
 
   // Auto-check state
   const [checkInterval, setCheckInterval] = useState(5000) // Start with 5 seconds

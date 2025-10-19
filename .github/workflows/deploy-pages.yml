@@ -43,7 +43,6 @@ jobs:
         npm run build
       env:
         NODE_ENV: production
-        BACKEND_BASE_URL: https://your-backend-domain.com
 
     - name: Copy public assets manually
       run: |

@@ -44,7 +44,16 @@ export interface ApiError {
 }
 
 // Configuration
-let API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000'
+const getApiBaseUrl = () => {
+  // Check localStorage for cached API URL first
+  const cachedUrl = localStorage.getItem('netwiz-api-url')
+  if (cachedUrl) {
+    return cachedUrl
+  }
+  return `http://localhost:5000`
+}
+
+let API_BASE_URL = getApiBaseUrl()
 const API_TIMEOUT = 30000 // 30 seconds
 
 // Function to update API base URL

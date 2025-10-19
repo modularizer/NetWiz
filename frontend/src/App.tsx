@@ -63,12 +63,14 @@ function App() {
 
   // Health check function
   const performHealthCheck = useCallback(async () => {
-    const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
-    const defaultApiUrl = `http://localhost:${defaultBackendPort}`
+    // Use cached API URL from localStorage, fallback to default
+    const cachedUrl = localStorage.getItem('netwiz-api-url')
+    const defaultApiUrl = `http://localhost:5000`
+    const apiUrl = cachedUrl || defaultApiUrl
 
     try {
-      console.log('App: Performing health check at:', `${defaultApiUrl}/`)
-      const response = await fetch(`${defaultApiUrl}/`, {
+      console.log('App: Performing health check at:', `${apiUrl}/`)
+      const response = await fetch(`${apiUrl}/`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -121,12 +123,14 @@ function App() {
   useEffect(() => {
     const checkInitialBackend = async () => {
       console.log('App: Starting initial backend check')
-      const defaultBackendPort = import.meta.env.VITE_BACKEND_PORT || '5000'
-      const defaultApiUrl = `http://localhost:${defaultBackendPort}`
+      // Use cached API URL from localStorage, fallback to default
+      const cachedUrl = localStorage.getItem('netwiz-api-url')
+      const defaultApiUrl = `http://localhost:5000`
+      const apiUrl = cachedUrl || defaultApiUrl
 
       try {
-        console.log('App: Checking backend at:', `${defaultApiUrl}/`)
-        const response = await fetch(`${defaultApiUrl}/`, {
+        console.log('App: Checking backend at:', `${apiUrl}/`)
+        const response = await fetch(`${apiUrl}/`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
