@@ -2,7 +2,7 @@ version: '3.8'
 
 # Production deployment using GitHub Pages for frontend
 # This assumes your frontend is deployed to GitHub Pages at:
-# https://${GITHUB_USER:-modularizer}.github.io/${GITHUB_PROJECT:-netwiz}/
+# https://${GITHUB_USER:-modularizer}.github.io/${GITHUB_PROJECT:-NetWiz}/
 
 services:
   backend:
@@ -18,7 +18,7 @@ services:
       - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017/netwiz?authSource=admin
       - MONGODB_DATABASE=netwiz
       # CORS for GitHub Pages
-      - CORS_ORIGINS=https://${GITHUB_USER:-modularizer}.github.io,https://${GITHUB_USER:-modularizer}.github.io/${GITHUB_PROJECT:-netwiz},http://localhost:3000
+      - CORS_ORIGINS=https://${GITHUB_USER:-modularizer}.github.io,https://${GITHUB_USER:-modularizer}.github.io/${GITHUB_PROJECT:-NetWiz},http://localhost:3000
     depends_on:
       - mongodb
     networks:

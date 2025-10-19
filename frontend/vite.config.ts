@@ -5,7 +5,7 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? '/netwiz/' : '/',
+  base: process.env.BASE_URL || (process.env.NODE_ENV === 'production' ? '/NetWiz/' : '/'),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -29,5 +29,9 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+  },
+  define: {
+    'import.meta.env.VITE_BASE_URL': JSON.stringify(process.env.BASE_URL || '/'),
+    'import.meta.env.VITE_BACKEND_BASE_URL': JSON.stringify(process.env.BACKEND_BASE_URL || 'http://localhost:5000'),
   },
 })
