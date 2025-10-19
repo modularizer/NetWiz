@@ -46,10 +46,18 @@ jobs:
     - name: Copy public assets manually
       run: |
         cd frontend
-        echo "=== Copying public directory contents ==="
-        cp -r public/* dist/ 2>/dev/null || echo "No public directory or copy failed"
+        echo "=== Current directory ==="
+        pwd
+        echo "=== Directory contents ==="
+        ls -la
         echo "=== Public directory contents ==="
-        ls -la public/ 2>/dev/null || echo "No public directory found"
+        ls -la public/ || echo "Public directory not found"
+        echo "=== Dist directory contents before copy ==="
+        ls -la dist/ || echo "Dist directory not found"
+        echo "=== Copying public directory contents ==="
+        cp -r public/* dist/ || echo "Copy failed"
+        echo "=== Dist directory contents after copy ==="
+        ls -la dist/ || echo "Dist directory not found"
 
     - name: Debug build output
       run: |
