@@ -9,7 +9,11 @@ Want to run NetWiz without cloning the repository? Just use the GitHub Pages sta
 1. Go to frontend at https://modularizer.github.io/NetWiz/
 2. Launch backend with the following oneliner
 ```bash
-f=$(mktemp) && curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o $f && trap "docker-compose -f $f down --rmi all --volumes --remove-orphans; rm $f" EXIT && docker-compose -f $f up
+f=$(mktemp) && \
+curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" && \
+trap 'docker-compose -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT && \
+docker-compose -f "$f" pull && \
+docker-compose -f "$f" up
 ```
 
 
