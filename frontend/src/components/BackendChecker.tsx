@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
 
 interface BackendStatus {
@@ -25,13 +25,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     return saved || ''
   })
 
-  useEffect(() => {
-    // Use saved API URL if available, otherwise use default
-    const apiUrl = customApiUrl || defaultApiUrl
-    checkBackendStatus(apiUrl)
-  }, [])
-
-  const checkBackendStatus = async (apiUrl?: string) => {
+  const checkBackendStatus = useCallback(async (apiUrl?: string) => {
     setLoading(true)
     const url = apiUrl || defaultApiUrl
 
@@ -74,7 +68,13 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     } finally {
       setLoading(false)
     }
-  }
+  }, [defaultApiUrl, onBackendStatusChange])
+
+  useEffect(() => {
+    // Use saved API URL if available, otherwise use default
+    const apiUrl = customApiUrl || defaultApiUrl
+    checkBackendStatus(apiUrl)
+  }, [customApiUrl, defaultApiUrl, checkBackendStatus])
 
   const handleApiUrlChange = (newUrl: string) => {
     setCustomApiUrl(newUrl)
@@ -104,10 +104,10 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         <p><strong>Option 1: One-liner (No file saved)</strong></p>
         <div
           className="block bg-gray-200 p-2 rounded text-xs cursor-pointer hover:bg-gray-300 transition-colors relative group"
-          onClick={() => copyToClipboard('curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up')}
+          onClick={() => copyToClipboard('curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up --rm --volumes')}
         >
           <code className="select-none">
-            curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
+            curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up --rm --volumes
           </code>
           <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
             {copied ? (

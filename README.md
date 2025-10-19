@@ -44,8 +44,10 @@ Want to run NetWiz without cloning the repository? Just download and run the Doc
 ### Option 1: One-liner (No file saved)
 
 ```bash
-curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up
+curl -s https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml | docker-compose -f - up --rm --volumes
 ```
+
+> **Note**: The `--rm --volumes` flags ensure that containers and data are automatically cleaned up when you stop the application (Ctrl+C). No persistent data will remain on your system.
 
 **Access the application:**
    - **Frontend**: https://modularizer.github.io/NetWiz/
