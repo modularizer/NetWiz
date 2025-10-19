@@ -8,7 +8,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
+import { useState } from 'react'
 import NetlistPage from '@/pages/NetlistPage'
+import { BackendChecker } from '@/components/BackendChecker'
+import { updateApiBaseUrl } from '@/services/api'
 import './styles/globals.css'
 
 // Create a client for React Query
@@ -23,10 +26,20 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  const [apiUrl, setApiUrl] = useState(import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000')
+
+  const handleApiUrlChange = (newUrl: string) => {
+    setApiUrl(newUrl)
+    updateApiBaseUrl(newUrl)
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
         <div className="min-h-screen bg-gray-50">
+          <div className="container mx-auto px-4 py-6">
+            <BackendChecker onApiUrlChange={handleApiUrlChange} />
+          </div>
           <Routes>
             <Route path="/" element={<NetlistPage />} />
             <Route path="/netlist" element={<NetlistPage />} />

@@ -44,8 +44,15 @@ export interface ApiError {
 }
 
 // Configuration
-const API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000'
+let API_BASE_URL = import.meta.env.VITE_BACKEND_BASE_URL || 'http://localhost:5000'
 const API_TIMEOUT = 30000 // 30 seconds
+
+// Function to update API base URL
+export const updateApiBaseUrl = (newBaseUrl: string) => {
+  API_BASE_URL = newBaseUrl
+  // Recreate the client with new base URL
+  apiClient.updateBaseUrl(newBaseUrl)
+}
 
 class NetWizApiClient {
   private client: AxiosInstance
@@ -60,6 +67,10 @@ class NetWizApiClient {
     })
 
     this.setupInterceptors()
+  }
+
+  updateBaseUrl(newBaseUrl: string) {
+    this.client.defaults.baseURL = newBaseUrl
   }
 
   private setupInterceptors() {

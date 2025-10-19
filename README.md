@@ -37,6 +37,61 @@ The application supports netlist files containing:
 - Cloud deployment ready (AWS, etc.)
 - Docker containerization
 
+## Quick Start (No Source Code Required)
+
+Want to run NetWiz without cloning the repository? Just download and run the Docker containers:
+
+### Option 1: Using Docker Compose (Recommended)
+
+1. **Download the compose file:**
+   ```bash
+   curl -O https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml
+   ```
+
+2. **Start NetWiz:**
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+3. **Access the application:**
+   - **Frontend**: https://modularizer.github.io/NetWiz/
+   - **Backend API**: http://localhost:5000
+   - **API Docs**: http://localhost:5000/docs
+
+### Option 2: Using Docker Run
+
+1. **Start MongoDB:**
+   ```bash
+   docker run -d --name netwiz-mongodb \
+     -e MONGO_INITDB_ROOT_USERNAME=admin \
+     -e MONGO_INITDB_ROOT_PASSWORD=password \
+     -p 27017:27017 \
+     mongo:7.0
+   ```
+
+2. **Start NetWiz Backend:**
+   ```bash
+   docker run -d --name netwiz-backend \
+     -e ENVIRONMENT=production \
+     -e MONGODB_URI=mongodb://admin:password@netwiz-mongodb:27017/netwiz?authSource=admin \
+     -e CORS_ORIGINS=https://modularizer.github.io,https://modularizer.github.io/NetWiz \
+     -p 5000:5000 \
+     --link netwiz-mongodb:mongodb \
+     ghcr.io/modularizer/netwiz-backend:latest
+   ```
+
+### Configuration
+
+Create a `.env` file to customize settings:
+
+```bash
+# Custom ports and credentials
+BACKEND_PORT=5000
+MONGODB_USER=admin
+MONGODB_PASSWORD=your-secure-password
+MONGODB_DATA_PATH=./mongodb-data
+```
+
 ## Getting Started
 
 ### Prerequisites

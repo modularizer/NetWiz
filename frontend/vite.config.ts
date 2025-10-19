@@ -33,5 +33,6 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_BASE_URL': JSON.stringify(process.env.BASE_URL || '/'),
     'import.meta.env.VITE_BACKEND_BASE_URL': JSON.stringify(process.env.BACKEND_BASE_URL || 'http://localhost:5000'),
+    'import.meta.env.VITE_BACKEND_PORT': JSON.stringify(process.env.BACKEND_PORT || '5000'),
   },
 })
