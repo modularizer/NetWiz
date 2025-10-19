@@ -198,7 +198,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     }
   }
 
-  const oneliner = `f=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" && trap 'docker-compose -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT && docker-compose -f "$f" pull && docker-compose -f "$f" up`
+  const oneliner = `COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" && trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT && docker-compose -p netwiz -f "$f" up`
 
   const getDockerInstructions = () => (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
