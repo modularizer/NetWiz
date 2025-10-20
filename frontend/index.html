@@ -47,31 +47,11 @@
         return result;
       }
 
-      // Update all asset URLs with the correct base path
-      function updateAssetUrls() {
-        const basePath = detectBasePath();
-        console.log('Using base path for assets:', basePath);
-
-        // Update favicon and icon links
-        const iconLinks = document.querySelectorAll('link[rel*="icon"], link[rel="apple-touch-icon"]');
-        iconLinks.forEach(link => {
-          const href = link.getAttribute('href');
-          if (href && href.startsWith('./')) {
-            link.setAttribute('href', basePath + href.slice(2));
-          }
-        });
-
-        // Store base path for React app to use
-        window.__NETWIZ_BASE_PATH__ = basePath;
-        console.log('Stored base path:', window.__NETWIZ_BASE_PATH__);
-      }
-
-      // Run immediately
-      updateAssetUrls();
+      detectBasePath();
     </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>

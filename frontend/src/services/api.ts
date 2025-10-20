@@ -19,6 +19,15 @@ import type {
   NetlistUploadResponse,
   ValidationResponse
 } from '@/types/netlist'
+import type {
+  User,
+  Token,
+  UserLogin,
+  UserCreate,
+  ChangePasswordRequest,
+  RefreshTokenRequest
+} from '@/types/auth'
+import { clearAllAuthData } from '@/utils/authUtils'
 
 // Type aliases for better readability
 type ApiPaths = paths
@@ -80,38 +89,22 @@ class NetWizApiClient {
       },
     })
 
-    this.setupInterceptors()
   }
 
   updateBaseUrl(newBaseUrl: string) {
     this.client.defaults.baseURL = newBaseUrl
   }
 
-  private setupInterceptors() {
-    // Request interceptor
-    this.client.interceptors.request.use(
-      (config) => {
-        console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`)
-        return config
-      },
-      (error) => {
-        console.error('❌ API Request Error:', error)
-        return Promise.reject(error)
-      }
-    )
 
-    // Response interceptor
-    this.client.interceptors.response.use(
-      (response) => {
-        console.log(`✅ API Response: ${response.status} ${response.config.url}`)
-        return response
-      },
-      (error: AxiosError) => {
-        console.error('❌ API Response Error:', error.response?.status, error.message)
-        return Promise.reject(this.handleError(error))
-      }
-    )
+  private getAuthHeaders() {
+    const token = localStorage.getItem('netwiz_access_token')
+    console.log('🔑 getAuthHeaders - Token:', token ? 'Found' : 'Not found')
+    console.log('🔑 getAuthHeaders - Token value:', token ? `${token.substring(0, 20)}...` : 'null')
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}
+    console.log('🔑 getAuthHeaders - Headers:', headers)
+    return headers
   }
+
 
   private handleError(error: AxiosError): ApiError {
     if (error.response) {
@@ -138,6 +131,51 @@ class NetWizApiClient {
   // Health check
   async getHealth(): Promise<ApiComponents['schemas']['HealthResponse']> {
     const response = await this.client.get<ApiComponents['schemas']['HealthResponse']>('/health')
+    return response.data
+  }
+
+  // Authentication methods
+  async signin(credentials: UserLogin): Promise<Token> {
+    const response = await this.client.post<Token>('/auth/signin', credentials)
+    return response.data
+  }
+
+  async signup(userData: UserCreate): Promise<User> {
+    const response = await this.client.post<User>('/auth/signup', userData)
+    return response.data
+  }
+
+  async signout(): Promise<{ message: string }> {
+    const response = await this.client.post<{ message: string }>('/auth/signout', {}, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async refreshToken(refreshData: RefreshTokenRequest): Promise<Token> {
+    const response = await this.client.post<Token>('/auth/refresh', refreshData)
+    return response.data
+  }
+
+  async changePassword(passwordData: ChangePasswordRequest): Promise<{ message: string }> {
+    const response = await this.client.post<{ message: string }>('/auth/change-password', passwordData, {
+      headers: this.getAuthHeaders()
+    })
+    return response.data
+  }
+
+  async getCurrentUser(): Promise<User> {
+    const authHeaders = this.getAuthHeaders()
+    console.log('🔑 getCurrentUser - Making request with headers:', authHeaders)
+    console.log('🔑 getCurrentUser - Client default headers:', this.client.defaults.headers)
+
+    const response = await this.client.get<User>('/auth/me', {
+      headers: {
+        ...this.client.defaults.headers.common,
+        ...authHeaders
+      }
+    })
+    console.log('🔑 getCurrentUser - Final request headers:', response.config.headers)
     return response.data
   }
 

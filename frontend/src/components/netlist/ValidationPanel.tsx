@@ -13,7 +13,6 @@ import { AlertCircle, CheckCircle, AlertTriangle, Info, MapPin, HelpCircle } fro
 import type { ValidationResult, ValidationErrorType } from '@/types/netlist'
 import RulesModal from './RulesModal'
 import RuleDescriptionModal from './RuleDescriptionModal'
-import { useBasePath } from '@/contexts/BasePathContext'
 
 interface ValidationPanelProps {
   validationResult: ValidationResult | null
@@ -24,7 +23,6 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false)
   const [isRuleDescriptionModalOpen, setIsRuleDescriptionModalOpen] = useState(false)
   const [selectedRule, setSelectedRule] = useState<ValidationErrorType | null>(null)
-  const { withBasePath } = useBasePath()
 
   const handleRuleDescriptionClick = (rule: ValidationErrorType) => {
     setSelectedRule(rule)
@@ -37,7 +35,7 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 rounded-full flex items-center justify-center">
             <img
-              src={withBasePath('logo.svg')}
+              src={'./logo.svg'}
               alt="NetWiz Logo"
               className="w-6 h-6"
             />

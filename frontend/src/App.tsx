@@ -5,12 +5,13 @@
  * It sets up the routing, global state, and overall layout structure.
  */
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from 'react-query'
 import { ReactQueryDevtools } from 'react-query/devtools'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import NetlistPage from '@/pages/NetlistPage'
 import { BackendChecker } from '@/components/BackendChecker'
+import { AuthenticatedAppRouter } from '@/components/AuthenticatedAppRouter'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { updateApiBaseUrl, DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
 import { BasePathProvider, useBasePath } from '@/contexts/BasePathContext'
 import './styles/globals.css'
@@ -38,11 +39,9 @@ const AppRouter: React.FC = () => {
 
   return (
     <Router basename={basename}>
-      <Routes>
-        <Route path="/" element={<NetlistPage />} />
-        <Route path="/netlist" element={<NetlistPage />} />
-        {/* Add more routes as needed */}
-      </Routes>
+      <AuthProvider>
+        <AuthenticatedAppRouter />
+      </AuthProvider>
     </Router>
   )
 }

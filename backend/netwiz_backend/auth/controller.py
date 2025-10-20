@@ -162,7 +162,9 @@ class AuthController(RouteControllerABC):
 
         # Get user by username
         user = await auth_repo.get_user_by_username(user_login.username)
+        print(user_login.model_dump(), user.model_dump())
         if not user:
+            print("user not found => incorrect username or password")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
@@ -171,6 +173,7 @@ class AuthController(RouteControllerABC):
 
         # Verify password
         if not verify_password(user_login.password, user.hashed_password):
+            print("incorrect password => incorrect username or password")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect username or password",
@@ -179,6 +182,7 @@ class AuthController(RouteControllerABC):
 
         # Check if user is active
         if not user.is_active:
+            print("user not active")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user"
             )

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
-import { useBasePath } from '@/contexts/BasePathContext'
+import { NetWizInfo } from '@/components/NetWizInfo'
 import { DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
 
 interface BackendStatus {
@@ -18,7 +18,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const [status, setStatus] = useState<BackendStatus | null>(null)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-  const { withBasePath } = useBasePath()
   const defaultApiUrl = DEFAULT_API_URL
 
   // Auto-check state
@@ -259,27 +258,15 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300 px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <img
-              src={withBasePath('logo-full.svg')}
-              alt="NetWiz Logo"
-              className="h-12 w-auto"
-            />
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">NetWiz</h1>
-              <p className="text-sm text-gray-500">PCB Netlist Visualizer + Validator</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
+      {/* NetWiz Info - Left side on desktop, top on mobile */}
+      <div className="lg:w-1/2 w-full lg:h-full h-1/2">
+        <NetWizInfo />
+      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="space-y-4">
+      {/* Backend Checker - Right side on desktop, bottom on mobile */}
+      <div className="lg:w-1/2 w-full lg:h-full h-1/2 overflow-auto p-6">
+          <div className="space-y-4">
           {/* Status Display */}
           <div className={`p-4 border rounded-lg ${
             status?.accessible && status?.isNetWiz
@@ -351,8 +338,8 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
           </div>
         </div>
       )}
-        </div>
       </div>
     </div>
+      </div>
   )
 }

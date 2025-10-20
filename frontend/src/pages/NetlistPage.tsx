@@ -15,16 +15,15 @@ import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
 import VersionInfo from '@/components/VersionInfo'
+import { NetWizHeader } from '@/components/layout/NetWizHeader'
 import { useJsonValidation } from '@/hooks'
 import { testExamples, type TestExample } from '@/utils/testExamples'
-import { useBasePath } from '@/contexts/BasePathContext'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
 const NetlistPage: React.FC = () => {
   const [netlist, setNetlist] = useState<Netlist | null>(null)
   const [jsonText, setJsonText] = useState<string>('')
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
-  const { withBasePath } = useBasePath()
 
   // Custom hooks for API operations
   const { validateJsonText, isValidating, validationResult: hookValidationResult } = useJsonValidation()
@@ -105,7 +104,7 @@ const NetlistPage: React.FC = () => {
   }, [jsonText, validateJsonText])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
-      const response = await fetch(withBasePath(`test-examples/${example.filename}`))
+      const response = await fetch(`./test-examples/${example.filename}`)
       const text = await response.text()
       setJsonText(text)
 
@@ -156,24 +155,7 @@ const NetlistPage: React.FC = () => {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300 px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <img
-              src={withBasePath('logo-full.svg')}
-              alt="NetWiz Logo"
-              className="h-12 w-auto"
-            />
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">NetWiz</h1>
-              <p className="text-sm text-gray-500">PCB Netlist Visualizer + Validator</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <VersionInfo />
-          </div>
-        </div>
-      </header>
+      <NetWizHeader />
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">

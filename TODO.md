@@ -23,10 +23,10 @@ Build a small, proof-of-concept application which lets users:
 - [ ] Store submissions in a database (e.g. MongoDB)
   - [x] setup
   - [ ] test
-- [ ] add users to support per-user requirements
-  - [ ] JWT auth
-  - [ ] users and sessions in mongodb
-  - [ ] admin and non-admin users
+- [x] add users to support per-user requirements
+  - [x] JWT auth
+  - [x] users in mongodb
+  - [x] admin and non-admin users
 - [ ] Display list of submissions per-user
 - [ ] Display validation results per-submission, highlighting violations
 

@@ -92,7 +92,7 @@ class Settings(BaseSettings):
 
     # Password Configuration
     password_pepper: str = Field(
-        default="NetWizAOSDFAMSDF",
+        default="another-secret-change-me",
         alias="PASSWORD_PEPPER",
         description="Application-specific pepper for password hashing",
     )

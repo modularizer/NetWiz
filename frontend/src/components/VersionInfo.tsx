@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { Info, X, GitBranch, Calendar, Hash, Tag } from 'lucide-react'
-import { useBasePath } from '@/contexts/BasePathContext'
 
 interface FrontendVersion {
   commit_hash: string
@@ -51,13 +50,12 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ className = '' }) => {
   const [backendVersion, setBackendVersion] = useState<BackendVersion | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { withBasePath } = useBasePath()
 
   // Load frontend version info
   useEffect(() => {
     const loadFrontendVersion = async () => {
       try {
-        const response = await fetch(withBasePath('version.json'))
+        const response = await fetch('./version.json')
         if (response.ok) {
           const data = await response.json()
           setFrontendVersion(data.frontend)
@@ -68,7 +66,7 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ className = '' }) => {
     }
 
     loadFrontendVersion()
-  }, [withBasePath])
+  }, [])
 
   // Load backend version info
   const loadBackendVersion = async () => {

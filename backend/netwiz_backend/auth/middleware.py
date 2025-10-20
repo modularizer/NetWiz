@@ -13,11 +13,11 @@ from netwiz_backend.auth.repository import get_auth_repository
 from netwiz_backend.database import get_database
 
 # HTTP Bearer token scheme
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
     database: AgnosticDatabase = Depends(get_database),
 ) -> User:
     """
@@ -31,6 +31,9 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if credentials is None:
+        raise credentials_exception
 
     token_data = verify_token(credentials.credentials)
     if token_data is None:

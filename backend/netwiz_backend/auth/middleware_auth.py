@@ -16,6 +16,7 @@ from netwiz_backend.auth.middleware import (
     get_current_active_user,
     get_optional_current_user,
 )
+from netwiz_backend.auth.models import UserType
 
 
 async def auth_middleware(request: Request, call_next: Callable):
@@ -58,9 +59,13 @@ async def auth_middleware(request: Request, call_next: Callable):
         else:
             # Required auth - get authenticated user
             current_user = await get_current_active_user()
+            print(
+                f"DEBUG: Got user {current_user.username}, is_active: {current_user.is_active}, user_type: {current_user.user_type}"
+            )
 
             # Check admin requirement
-            if is_admin_required(handler) and current_user.user_type.value != "admin":
+            if is_admin_required(handler) and current_user.user_type != UserType.ADMIN:
+                print("user not admin", current_user.user_type)
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
                     content={"detail": "Admin privileges required"},
