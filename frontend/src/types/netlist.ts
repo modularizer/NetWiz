@@ -93,10 +93,13 @@ export interface NetlistUploadRequest {
   filename?: string | null
 }
 
-export interface NetlistUploadResponse {
-  submission_id: string
-  message: string
-  validation_result: ValidationResult
+export interface NetlistSubmission {
+  id: string
+  netlist: Netlist
+  user_id: string | null
+  submission_timestamp: string
+  validation_result: ValidationResult | null
+  filename: string | null
 }
 
 export interface ValidationRequest {

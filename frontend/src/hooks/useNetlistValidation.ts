@@ -137,8 +137,8 @@ export const useNetlistValidation = () => {
 // Hook for netlist upload
 export const useNetlistUpload = () => {
   const mutation = useMutation({
-    mutationFn: async (file: File) => {
-      const response = await apiClient.uploadFile(file)
+    mutationFn: async ({ file, filename }: { file: File; filename?: string }) => {
+      const response = await apiClient.uploadFile(file, filename)
       return response
     },
     onError: (error) => {

@@ -17,7 +17,7 @@ class NetlistRepository:
 
     async def create(self, submission: NetlistSubmission) -> str:
         """Create a new netlist submission"""
-        doc = submission.model_dump()
+        doc = submission.model_dump(mode="json")
         result = await self.collection.insert_one(doc)
         return str(result.inserted_id)
 

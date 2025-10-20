@@ -15,8 +15,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 import type { paths, components } from '@/types/api'
 import type {
-  NetlistUploadRequest,
-  NetlistUploadResponse,
+  NetlistSubmission,
   ValidationResponse
 } from '@/types/netlist'
 import type {
@@ -179,17 +178,6 @@ class NetWizApiClient {
     return response.data
   }
 
-  // Netlist operations
-  async uploadNetlist(
-    data: NetlistUploadRequest
-  ): Promise<NetlistUploadResponse> {
-    const response = await this.client.post<NetlistUploadResponse>(
-      '/netlist/upload',
-      data
-    )
-    return response.data
-  }
-
   async validateNetlist(
     netlist: any
   ): Promise<ValidationResponse> {
@@ -239,19 +227,20 @@ class NetWizApiClient {
     return response.data
   }
 
-  // File upload helper
-  async uploadFile(file: File, userId?: string): Promise<NetlistUploadResponse> {
+  // File upload helper - uses /upload endpoint with file object
+  async uploadFile(file: File, filename?: string): Promise<NetlistSubmission> {
     const formData = new FormData()
     formData.append('file', file)
-    if (userId) {
-      formData.append('user_id', userId)
+    if (filename) {
+      formData.append('filename', filename)
     }
 
-    const response = await this.client.post<NetlistUploadResponse>(
+    const response = await this.client.post<NetlistSubmission>(
       '/netlist/upload',
       formData,
       {
         headers: {
+          ...this.getAuthHeaders(),
           'Content-Type': 'multipart/form-data',
         },
       }
@@ -281,8 +270,7 @@ export type {
   Net,
   Pin,
   NetConnection,
-  NetlistUploadRequest,
-  NetlistUploadResponse,
+  NetlistSubmission,
   ValidationRequest,
   ValidationResponse
 } from '@/types/netlist'

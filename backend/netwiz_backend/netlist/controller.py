@@ -2,9 +2,7 @@
 import uuid
 from typing import ClassVar
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.requests import Request as FastAPIRequest
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from motor.core import AgnosticDatabase
 from pydantic import UUID4
 
@@ -14,26 +12,12 @@ from netwiz_backend.auth.models import User
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
-from netwiz_backend.netlist.core.models import Netlist
-from netwiz_backend.netlist.core.validation.types import (
-    INVALID_FORMAT,
-    ValidationError,
-    ValidationResult,
-)
-from netwiz_backend.netlist.core.validation.validation import (
-    validate_basic_format,
-    validate_netlist,
-    validate_netlist_text,
-)
+from netwiz_backend.netlist.core.models import Netlist, TrackedNetlist
+from netwiz_backend.netlist.core.validation import validate_netlist
 from netwiz_backend.netlist.models import (
     NetlistEndpoints,
-    NetlistGetResponse,
     NetlistListResponse,
     NetlistSubmission,
-    NetlistUploadRequest,
-    NetlistUploadResponse,
-    TextValidationRequest,
-    ValidationRequest,
 )
 from netwiz_backend.netlist.repository import get_netlist_repository
 from netwiz_backend.tools import get_pagination_params
@@ -53,7 +37,7 @@ class NetlistController(RouteControllerABC):
             "/{submission_id}",
             self.get_netlist,
             methods=["GET"],
-            response_model=NetlistGetResponse,
+            response_model=NetlistSubmission,
             dependencies=[Depends(get_current_active_user)],
             openapi_extra={
                 "description": "Retrieve a specific netlist submission. Users can only access their own netlists unless they are admin."
@@ -75,23 +59,12 @@ class NetlistController(RouteControllerABC):
             "/upload",
             self.upload_netlist,
             methods=["POST"],
-            response_model=NetlistUploadResponse,
+            response_model=NetlistSubmission,
             status_code=status.HTTP_201_CREATED,
             dependencies=[Depends(get_current_active_user)],
-        )
-
-        # Note: to inject a custom dependency result (ValidationRequest) into the handler
-        # we keep the dependency in the function signature via Depends(...)
-        router.add_api_route(
-            "/validate",
-            self.validate_netlist,
-            methods=["POST"],
-        )
-
-        router.add_api_route(
-            "/validate-text",
-            self.validate_json_text,
-            methods=["POST"],
+            openapi_extra={
+                "description": "Upload netlist as JSON file. Accepts multipart/form-data with file field."
+            },
         )
 
     @PUBLIC
@@ -99,29 +72,11 @@ class NetlistController(RouteControllerABC):
         """Generate netlist endpoints based on the configured prefix."""
         return NetlistEndpoints(
             upload=f"{self.prefix}/upload",
+            upload_data=f"{self.prefix}/upload/data",
+            upload_text=f"{self.prefix}/upload/text",
             list=self.prefix,
             get=f"{self.prefix}/{{submission_id}}",
-            validate=f"{self.prefix}/validate",
-            validate_text=f"{self.prefix}/validate-text",
         )
-
-    # ── Shared dependency (kept on the class) ──────────────────────────────────
-    @staticmethod
-    async def get_unvalidated_request(request: FastAPIRequest) -> ValidationRequest:
-        """
-        Custom pre-validation: parse body as text, run structural validation to
-        produce a ValidationRequest or raise ValidationHTTPError.
-        """
-        body = await request.body()
-        json_text = body.decode("utf-8")
-
-        tracked_netlist, vres = validate_basic_format(json_text)
-        if vres is not None:
-            raise HTTPException(
-                status_code=422,
-                detail={"validation_result": vres.model_dump(mode="json")},
-            )
-        return ValidationRequest(netlist=tracked_netlist)
 
     # ── Handlers ───────────────────────────────────────────────────────────────
     @AUTH
@@ -130,7 +85,7 @@ class NetlistController(RouteControllerABC):
         submission_id: str,
         database: AgnosticDatabase = Depends(get_database),
         current_user: User = Depends(get_current_active_user),
-    ) -> NetlistGetResponse:
+    ) -> NetlistSubmission:
         """
         Retrieve a specific netlist submission by ID.
 
@@ -155,7 +110,7 @@ class NetlistController(RouteControllerABC):
                 detail="Access denied: You can only view your own netlists",
             )
 
-        return NetlistGetResponse(submission=submission)
+        return submission
 
     @AUTH
     async def list_netlists(
@@ -205,94 +160,52 @@ class NetlistController(RouteControllerABC):
     @AUTH
     async def upload_netlist(
         self,
-        request: NetlistUploadRequest,
+        file: UploadFile = File(..., description="JSON file containing netlist data"),
         database: AgnosticDatabase = Depends(get_database),
-    ) -> NetlistUploadResponse:
+        current_user: User = Depends(get_current_active_user),
+    ) -> NetlistSubmission:
         """
-        Upload and validate a new netlist submission.
+        Upload and validate a netlist from a JSON file.
 
-        Accepts a netlist submission, validates it according to PCB design rules,
-        and stores it in the database. Validation includes component connectivity,
-        net integrity, and design rule compliance checks.
+        Accepts a JSON file upload via multipart/form-data.
+        The file should contain valid netlist JSON data.
         """
-        try:
-            submission_id = str(uuid.uuid4())
-            validation_result = self._try_validate(request.netlist)
-
-            submission = NetlistSubmission(
-                id=submission_id,
-                netlist=request.netlist,
-                user_id=request.user_id,
-                filename=request.filename,
-                validation_result=validation_result,
-            )
-
-            repo = get_netlist_repository(database)
-            await repo.create(submission)
-
-            return NetlistUploadResponse(
-                submission_id=submission_id,
-                message="Netlist uploaded and validated successfully",
-                validation_result=validation_result,
-            )
-        except Exception as e:
+        # Validate file type
+        if not file.filename or not file.filename.lower().endswith(".json"):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Failed to upload netlist: {e!s}",
-            ) from e
-
-    @PUBLIC
-    async def validate_netlist(
-        self,
-        request: ValidationRequest = Depends(
-            get_unvalidated_request.__func__
-        ),  # staticmethod ref
-    ) -> JSONResponse:
-        """Validate a netlist without storing it in the database."""
-        return await self._validate(request.netlist)
-
-    @PUBLIC
-    async def validate_json_text(
-        self,
-        request: TextValidationRequest,
-    ) -> JSONResponse:
-        return await self._validate(request.json_text)
-
-    async def _validate(self, netlist: str | dict | Netlist):
-        """Validate JSON text directly with better location tracking."""
-        validation_result = await self._try_validate(netlist)
-        if validation_result.is_valid:
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "validation_result": validation_result.model_dump(mode="json")
-                },
+                detail="File must be a JSON file (.json extension)",
             )
-        return JSONResponse(
-            status_code=422,
-            content={
-                "detail": {
-                    "validation_result": validation_result.model_dump(mode="json")
-                }
-            },
+
+        # Read file content
+        content = await file.read()
+        json_text = content.decode("utf-8")
+        filename = file.filename
+
+        submission_id = str(uuid.uuid4())
+        tracked_netlist, validation_result = validate_netlist(json_text)
+        netlist = (
+            Netlist(
+                components=tracked_netlist.components,
+                nets=tracked_netlist.nets,
+                metadata=tracked_netlist.metadata,
+            )
+            if isinstance(tracked_netlist, TrackedNetlist)
+            else tracked_netlist
+            if isinstance(tracked_netlist, Netlist)
+            else None
         )
 
-    async def _try_validate(self, netlist: str | dict | Netlist):
-        try:
-            validation_result = (
-                validate_netlist_text(netlist)
-                if isinstance(netlist, str)
-                else validate_netlist(netlist)
-            )
-        except Exception:
-            validation_result = ValidationResult(
-                is_valid=False,
-                errors=[
-                    ValidationError(
-                        error_type=INVALID_FORMAT,
-                        message="Unknown Internal Server Error",
-                        severity="error",
-                    )
-                ],
-            )
-        return validation_result
+        submission = NetlistSubmission(
+            id=submission_id,
+            json_text=json_text,
+            netlist=netlist,
+            user_id=current_user.id,
+            filename=filename or "unnamed_netlist.json",
+            validation_result=validation_result,
+        )
+
+        repo = get_netlist_repository(database)
+        await repo.create(submission)
+
+        return submission

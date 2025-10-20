@@ -34,6 +34,7 @@ Example:
             print(f"  - {error.message}")
     ```
 """
+import json
 
 from netwiz_backend.netlist.core.models import Netlist, TrackedNetlist
 from netwiz_backend.netlist.core.validation.prevalidation import (
@@ -53,28 +54,50 @@ from netwiz_backend.netlist.core.validation.rules import (
     UniqueNetNameRule,
 )
 from netwiz_backend.netlist.core.validation.types import (
+    INVALID_JSON,
     ValidationResult,
 )
 
 
-def validate_netlist_text(json_text: str) -> ValidationResult:
+def validate_netlist(
+    netlist: str | dict | Netlist | TrackedNetlist,
+) -> tuple[dict | Netlist | TrackedNetlist | None, ValidationResult]:
+    if isinstance(netlist, str):
+        return _validate_netlist_text(netlist)
+    elif isinstance(netlist, dict):
+        try:
+            s = json.dumps(netlist)
+            return _validate_netlist_text(s)
+        except json.JSONDecodeError:
+            return netlist, ValidationResult(
+                is_valid=False,
+                errors=[INVALID_JSON],
+                warnings=[],
+                applied_rules=[INVALID_JSON],
+            )
+    return _validate_netlist(netlist)
+
+
+def _validate_netlist_text(
+    json_text: str
+) -> tuple[dict | Netlist | TrackedNetlist | None, ValidationResult]:
     tracked_netlist, validation_result = validate_basic_format(json_text)
     if validation_result is not None:
-        return validation_result
+        return tracked_netlist, validation_result
     if tracked_netlist is None:
-        return ValidationResult(
+        return tracked_netlist, ValidationResult(
             is_valid=False,
             errors=[],
             warnings=[],
             applied_rules=[],
         )
 
-    return validate_netlist(tracked_netlist)
+    return _validate_netlist(tracked_netlist)
 
 
-def validate_netlist(
+def _validate_netlist(
     netlist: Netlist | TrackedNetlist,
-) -> ValidationResult:
+) -> tuple[Netlist | TrackedNetlist | None, ValidationResult]:
     """
     Perform comprehensive validation of a netlist according to design rules.
 
@@ -145,7 +168,7 @@ def validate_netlist(
     for rule in validation_rules:
         rule.check(netlist, validation_rules_applied, errors, warnings, get_location)
 
-    return ValidationResult(
+    return netlist, ValidationResult(
         is_valid=len(errors) == 0,
         errors=errors,
         warnings=warnings,

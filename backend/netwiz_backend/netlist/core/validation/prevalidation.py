@@ -19,19 +19,19 @@ preapplied_rules = [
 
 def validate_basic_format(
     json_text: str,
-) -> tuple[TrackedNetlist | None, ValidationResult | None]:
+) -> tuple[dict | TrackedNetlist | None, ValidationResult | None]:
     """Get ValidationRequest with custom pre-validation"""
     validation_rules_applied = []
 
     # step 1: check if valid json
     tracked_json, vr = check_is_valid_json(json_text, validation_rules_applied)
     if vr is not None:
-        return None, vr
+        return tracked_json.data if tracked_json else None, vr
 
     # step 2: check basic structure
     tracked_netlist, vr = check_basic_format(tracked_json, validation_rules_applied)
     if vr is not None:
-        return None, vr
+        return tracked_netlist, vr
 
     # Create ValidationRequest without validation
     return tracked_netlist, None

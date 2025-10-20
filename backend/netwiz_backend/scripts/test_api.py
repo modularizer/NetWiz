@@ -143,18 +143,22 @@ class APITester:
             "POST", "/netlist/validate", json=sample_netlist
         )
 
-        # Upload netlist
-        upload_data = {
-            "netlist": sample_netlist["netlist"],
-            "user_id": "test_user",
-            "filename": "test_netlist.json",
+        # Test file upload endpoint
+        import json
+        from io import BytesIO
+
+        json_content = json.dumps(sample_netlist["netlist"], indent=2)
+        files = {
+            "file": (
+                "test_netlist.json",
+                BytesIO(json_content.encode("utf-8")),
+                "application/json",
+            )
         }
 
-        results["upload"] = self.test_endpoint(
-            "POST", "/netlist/upload", json=upload_data
+        results["upload_file"] = self.test_endpoint(
+            "POST", "/netlist/upload", files=files
         )
-
-        return results
 
     def run_all_tests(self) -> dict[str, Any]:
         """Run all API tests"""

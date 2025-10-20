@@ -14,9 +14,8 @@ import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
-import VersionInfo from '@/components/VersionInfo'
 import { NetWizHeader } from '@/components/layout/NetWizHeader'
-import { useJsonValidation } from '@/hooks'
+import { useNetlistUpload } from '@/hooks'
 import { testExamples, type TestExample } from '@/utils/testExamples'
 import type { Netlist, ValidationResult } from '@/types/netlist'
 
@@ -24,16 +23,12 @@ const NetlistPage: React.FC = () => {
   const [netlist, setNetlist] = useState<Netlist | null>(null)
   const [jsonText, setJsonText] = useState<string>('')
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
+  const [currentFilename, setCurrentFilename] = useState<string>('')
+  const [selectedExample, setSelectedExample] = useState<string>('')
+  const [netlistName, setNetlistName] = useState<string>('')
 
   // Custom hooks for API operations
-  const { validateJsonText, isValidating, validationResult: hookValidationResult } = useJsonValidation()
-
-  // Sync hook validation result with local state
-  useEffect(() => {
-    if (hookValidationResult) {
-      setValidationResult(hookValidationResult)
-    }
-  }, [hookValidationResult])
+  const { uploadNetlist, isUploading } = useNetlistUpload()
 
   // Navigation handler for clicking on validation errors
   const handleNavigateToError = useCallback((lineNumber: number, characterPosition: number) => {
@@ -60,22 +55,22 @@ const NetlistPage: React.FC = () => {
       // Invalid JSON - clear netlist but keep text
       setNetlist(null)
     }
+  }, [])
 
-    // Trigger validation with raw JSON text
-    try {
-      console.log('Calling validateJsonText...')
-      await validateJsonText(newJsonText)
-      console.log('validateJsonText completed')
-    } catch (error) {
-      console.error('Error in handleJsonTextChange:', error)
-    }
-  }, [validateJsonText])
-
-  // Handle file upload
+  // Handle file upload - only load content, no auto-validation or upload
   const handleFileUpload = useCallback(async (file: File) => {
     try {
       const text = await file.text()
       setJsonText(text)
+      setCurrentFilename(file.name)
+      setSelectedExample('') // Reset example selection when file is uploaded
+
+      // Clear previous validation results when loading new content
+      setValidationResult(null)
+
+      // Auto-populate netlist name from filename
+      const nameWithoutExtension = file.name.replace(/\.[^/.]+$/, '')
+      setNetlistName(nameWithoutExtension)
 
       // Try to parse for netlist state
       try {
@@ -85,28 +80,26 @@ const NetlistPage: React.FC = () => {
         setNetlist(null)
       }
 
-      // Trigger validation with raw JSON text
-      await validateJsonText(text)
+      // Note: No automatic validation or upload - user must click validate manually
     } catch (error) {
-      console.error('Upload error:', error)
+      console.error('File load error:', error)
     }
-  }, [validateJsonText])
+  }, [netlistName])
 
-  // Manual validation test
-  const handleManualValidation = useCallback(async () => {
-    if (!jsonText) return
-    console.log('Manual validation triggered for JSON text, length:', jsonText.length)
-    try {
-      await validateJsonText(jsonText)
-    } catch (error) {
-      console.error('Manual validation error:', error)
-    }
-  }, [jsonText, validateJsonText])
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
+      console.log('Loading test example:', example.name, 'filename:', example.filename)
       const response = await fetch(`./test-examples/${example.filename}`)
       const text = await response.text()
       setJsonText(text)
+      setCurrentFilename(example.filename)
+      console.log('Set currentFilename to:', example.filename)
+
+      // Clear previous validation results when loading new content
+      setValidationResult(null)
+
+      // Auto-populate netlist name from example name
+      setNetlistName(example.name)
 
       // Try to parse for netlist state
       try {
@@ -115,20 +108,49 @@ const NetlistPage: React.FC = () => {
       } catch (error) {
         setNetlist(null)
       }
-
-      // Validate the loaded example with raw JSON text
-      const result = await validateJsonText(text)
-      setValidationResult(result)
     } catch (error) {
       console.error('Error loading test example:', error)
-      // Set a simple error validation result
+    }
+  }, [netlistName])
+
+  // Debug currentFilename changes
+  useEffect(() => {
+    console.log('currentFilename changed to:', currentFilename)
+  }, [currentFilename])
+  const handleValidate = useCallback(async () => {
+    if (!jsonText) return
+
+    try {
+      // Create a file object from the JSON text
+      const blob = new Blob([jsonText], { type: 'application/json' })
+      const file = new File([blob], currentFilename || 'netlist.json', { type: 'application/json' })
+
+      // Upload to server
+      const result = await uploadNetlist({
+        file,
+        filename: netlistName || currentFilename || 'netlist.json'
+      })
+
+      console.log('Upload successful:', result)
+
+      // The upload result includes validation, so we can use that
+      if (result && result.validation_result) {
+        setValidationResult(result.validation_result)
+        console.log('Validation result set:', result.validation_result)
+      } else {
+        console.warn('No validation result in upload response:', result)
+      }
+    } catch (error) {
+      console.error('Upload/validation error:', error)
+
+      // Set a generic error validation result
       setValidationResult({
         is_valid: false,
         errors: [{
-          message: 'Unhandled exception',
+          message: error instanceof Error ? error.message : 'Upload failed',
           error_type: {
-            name: 'validation_error',
-            description: 'An unhandled validation error occurred'
+            name: 'upload_error',
+            description: 'An error occurred during upload'
           },
           severity: 'error',
           location: null
@@ -138,19 +160,7 @@ const NetlistPage: React.FC = () => {
         validation_rules_applied: []
       })
     }
-  }, [validateJsonText])
-
-  // Handle manual validation trigger
-  const handleValidate = useCallback(async () => {
-    if (!jsonText) return
-
-    try {
-      const result = await validateJsonText(jsonText)
-      setValidationResult(result)
-    } catch (error) {
-      console.error('Validation error:', error)
-    }
-  }, [jsonText, validateJsonText])
+  }, [jsonText, currentFilename, netlistName, uploadNetlist])
 
   return (
     <div className="h-screen flex flex-col">
@@ -168,24 +178,31 @@ const NetlistPage: React.FC = () => {
                 <div className="flex flex-col h-full">
                   <div className="bg-white border-b border-gray-200 px-4 py-2">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                      <div className="flex items-center space-x-4">
+                        <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                        {currentFilename && (
+                          <span className="text-xs text-gray-500">({currentFilename})</span>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-2">
-                        <button
-                          onClick={handleManualValidation}
-                          disabled={!netlist || isValidating}
-                          className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
-                        >
-                          {isValidating ? 'Validating...' : 'Validate'}
-                        </button>
+                        {/* Netlist Name Input */}
+                        <input
+                          type="text"
+                          value={netlistName}
+                          onChange={(e) => setNetlistName(e.target.value)}
+                          placeholder="Netlist name"
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
                         <select
+                          value={selectedExample}
                           onChange={(e) => {
+                            setSelectedExample(e.target.value)
                             const example = testExamples.find(ex => ex.id === e.target.value)
                             if (example) {
                               handleTestExampleSelect(example)
                             }
                           }}
                           className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                          defaultValue=""
                         >
                           <option value="">Load example...</option>
                           {testExamples.map((example) => (
@@ -215,11 +232,11 @@ const NetlistPage: React.FC = () => {
                         </label>
                         <button
                           onClick={handleValidate}
-                          disabled={!jsonText || isValidating}
+                          disabled={!jsonText || isUploading}
                           className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Validate netlist"
+                          title="Validate and upload netlist"
                         >
-                          {isValidating ? (
+                          {isUploading ? (
                             <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
                           ) : (
                             <CheckCircle className="w-4 h-4 text-gray-500" />
