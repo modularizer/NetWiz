@@ -179,9 +179,8 @@ class NetlistController(RouteControllerABC):
         """
 
         # Determine which netlists to show based on user permissions
-        if list_all or (
-            (user_id is not None and user_id != current_user.id)
-            and current_user.user_type.value != "admin"
+        if current_user.user_type.value != "admin" and (
+            list_all or (user_id is not None and user_id != current_user.id)
         ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

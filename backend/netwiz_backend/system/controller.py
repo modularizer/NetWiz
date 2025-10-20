@@ -4,11 +4,16 @@ from datetime import datetime, timezone
 from typing import ClassVar
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
+from motor.core import AgnosticDatabase
 
 from netwiz_backend.auth.decorators import ADMIN, PUBLIC
+from netwiz_backend.auth.jwt_utils import create_access_token, verify_password
 from netwiz_backend.auth.middleware import get_current_active_user
+from netwiz_backend.auth.repository import get_auth_repository
 from netwiz_backend.config import settings
 from netwiz_backend.controller_abc import RouteControllerABC
+from netwiz_backend.database import get_database
 from netwiz_backend.git_metadata import get_git_metadata
 from netwiz_backend.system.models import (
     ApiInfo,
@@ -52,6 +57,15 @@ class SystemController(RouteControllerABC):
                 "x-admin-only": True,
                 "description": "Kill the server (admin only). Only available in development mode.",
             },
+        )
+        router.add_api_route(
+            "/token",
+            self.login_for_access_token,
+            methods=["POST"],
+            response_model=dict,
+            tags=["auth"],
+            summary="OAuth2 compatible token endpoint",
+            description="Get access token for Swagger UI authorization",
         )
 
     def get_endpoints(self) -> EndpointsInfo:
@@ -150,6 +164,33 @@ class SystemController(RouteControllerABC):
             ),
             endpoints=self.get_endpoints(),
         )
+
+    @PUBLIC
+    async def login_for_access_token(
+        self,
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        database: AgnosticDatabase = Depends(get_database),
+    ) -> dict:
+        """
+        OAuth2 compatible token endpoint for Swagger UI.
+
+        This endpoint provides username/password authentication that integrates
+        seamlessly with Swagger UI's authorization modal.
+        """
+        auth_repo = get_auth_repository(database)
+        user = await auth_repo.get_user_by_username(form_data.username)
+
+        if not user or not verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=401,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = create_access_token(
+            data={"sub": user.username, "user_id": str(user.id)}
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
 
     @ADMIN
     async def kill_server(self) -> KillServerResponse:

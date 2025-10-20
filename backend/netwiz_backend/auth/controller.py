@@ -17,7 +17,7 @@ from netwiz_backend.auth.jwt_utils import (
     verify_password,
     verify_refresh_token,
 )
-from netwiz_backend.auth.middleware import get_current_active_user
+from netwiz_backend.auth.middleware_auth import get_current_active_user
 from netwiz_backend.auth.models import (
     AuthEndpoints,
     ChangePasswordRequest,
