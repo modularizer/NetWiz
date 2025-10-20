@@ -31,14 +31,18 @@ class NetlistRepository:
     async def list_by_user(
         self, user_id: str, limit: int = 10
     ) -> list[NetlistSubmission]:
-        """List netlists for a user"""
-        cursor = self.collection.find({"user_id": user_id}).limit(limit)
+        """List netlists for a user, ordered by most recent first"""
+        cursor = (
+            self.collection.find({"user_id": user_id})
+            .sort("submission_timestamp", -1)
+            .limit(limit)
+        )
         docs = await cursor.to_list(length=limit)
         return [NetlistSubmission(**doc) for doc in docs]
 
     async def list_all(self, limit: int = 10) -> list[NetlistSubmission]:
-        """List all netlists"""
-        cursor = self.collection.find({}).limit(limit)
+        """List all netlists, ordered by most recent first"""
+        cursor = self.collection.find({}).sort("submission_timestamp", -1).limit(limit)
         docs = await cursor.to_list(length=limit)
         return [NetlistSubmission(**doc) for doc in docs]
 

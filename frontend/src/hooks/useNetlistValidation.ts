@@ -159,8 +159,8 @@ export const useNetlist = (submissionId: string) => {
   return useQuery({
     queryKey: ['netlist', submissionId],
     queryFn: async () => {
-      const response = await apiClient.getNetlist(submissionId)
-      return response.submission
+      const submission = await apiClient.getNetlist(submissionId)
+      return submission
     },
     enabled: !!submissionId,
   })

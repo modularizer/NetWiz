@@ -12,7 +12,7 @@
  * - Support for file uploads and JSON payloads
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios'
+import axios, { AxiosInstance } from 'axios'
 import type { paths, components } from '@/types/api'
 import type {
   NetlistSubmission,
@@ -26,7 +26,6 @@ import type {
   ChangePasswordRequest,
   RefreshTokenRequest
 } from '@/types/auth'
-import { clearAllAuthData } from '@/utils/authUtils'
 
 // Type aliases for better readability
 type ApiPaths = paths
@@ -87,7 +86,6 @@ class NetWizApiClient {
         'Content-Type': 'application/json',
       },
     })
-
   }
 
   updateBaseUrl(newBaseUrl: string) {
@@ -105,27 +103,6 @@ class NetWizApiClient {
   }
 
 
-  private handleError(error: AxiosError): ApiError {
-    if (error.response) {
-      // Server responded with error status
-      return {
-        message: (error.response.data as any)?.detail || error.message,
-        status: error.response.status,
-        details: error.response.data,
-      }
-    } else if (error.request) {
-      // Request was made but no response received
-      return {
-        message: 'Network error - no response from server',
-        status: 0,
-      }
-    } else {
-      // Something else happened
-      return {
-        message: error.message,
-      }
-    }
-  }
 
   // Health check
   async getHealth(): Promise<ApiComponents['schemas']['HealthResponse']> {
@@ -178,6 +155,18 @@ class NetWizApiClient {
     return response.data
   }
 
+  async getUserById(userId: string): Promise<User> {
+    const response = await this.client.get<User>(
+      `/auth/user/${userId}`,
+      {
+        headers: {
+          ...this.getAuthHeaders(),
+        }
+      }
+    )
+    return response.data
+  }
+
   async validateNetlist(
     netlist: any
   ): Promise<ValidationResponse> {
@@ -186,6 +175,7 @@ class NetWizApiClient {
       netlist, // Wrap in ValidationRequest format
       {
         headers: {
+          ...this.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
       }
@@ -201,6 +191,7 @@ class NetWizApiClient {
       { json_text: jsonText },
       {
         headers: {
+          ...this.getAuthHeaders(),
           'Content-Type': 'application/json',
         },
       }
@@ -208,9 +199,14 @@ class NetWizApiClient {
     return response.data
   }
 
-  async getNetlist(submissionId: string): Promise<ApiComponents['schemas']['NetlistGetResponse']> {
-    const response = await this.client.get<ApiComponents['schemas']['NetlistGetResponse']>(
-      `/netlist/${submissionId}`
+  async getNetlist(submissionId: string): Promise<NetlistSubmission> {
+    const response = await this.client.get<NetlistSubmission>(
+      `/netlist/${submissionId}`,
+      {
+        headers: {
+          ...this.getAuthHeaders(),
+        }
+      }
     )
     return response.data
   }
@@ -219,15 +215,20 @@ class NetWizApiClient {
     page?: number
     page_size?: number
     user_id?: string
+    list_all?: boolean
   }): Promise<ApiComponents['schemas']['NetlistListResponse']> {
     const response = await this.client.get<ApiComponents['schemas']['NetlistListResponse']>(
       '/netlist',
-      { params }
+      {
+        params,
+        headers: {
+          ...this.getAuthHeaders(),
+        }
+      }
     )
     return response.data
   }
 
-  // File upload helper - uses /upload endpoint with file object
   async uploadFile(file: File, filename?: string): Promise<NetlistSubmission> {
     const formData = new FormData()
     formData.append('file', file)

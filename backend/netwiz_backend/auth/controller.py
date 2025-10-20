@@ -89,6 +89,13 @@ class AuthController(RouteControllerABC):
             response_model=UserResponse,
             dependencies=[Depends(get_current_active_user)],
         )
+        router.add_api_route(
+            "/user/{user_id}",
+            self.get_user_by_id,
+            methods=["GET"],
+            response_model=UserResponse,
+            dependencies=[Depends(get_current_active_user)],
+        )
 
     def get_endpoints(self) -> AuthEndpoints:
         """Generate auth endpoints based on the configured prefix."""
@@ -311,4 +318,41 @@ class AuthController(RouteControllerABC):
             user_type=current_user.user_type,
             created_at=current_user.created_at,
             is_active=current_user.is_active,
+        )
+
+    @AUTH
+    async def get_user_by_id(
+        self,
+        user_id: str,
+        current_user: User = Depends(get_current_active_user),
+        database: AgnosticDatabase = Depends(get_database),
+    ) -> UserResponse:
+        """
+        Get user information by ID.
+
+        Only admins can access other users' information.
+        Regular users can only access their own information.
+        """
+        # Check if user is trying to access their own info or is admin
+        if current_user.id != user_id and current_user.user_type != UserType.ADMIN:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to access this user's information",
+            )
+
+        # Get user from database
+        repo = get_auth_repository(database)
+        user = await repo.get_user_by_id(user_id)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
+
+        return UserResponse(
+            id=user.id,
+            username=user.username,
+            user_type=user.user_type,
+            created_at=user.created_at,
+            is_active=user.is_active,
         )

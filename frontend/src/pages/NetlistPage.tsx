@@ -8,16 +8,18 @@
  * - Interactive schematic visualization
  */
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
+import SubmissionsList from '@/components/netlist/SubmissionsList'
 import { NetWizHeader } from '@/components/layout/NetWizHeader'
 import { useNetlistUpload } from '@/hooks'
+import { useAuth } from '@/contexts/AuthContext'
 import { testExamples, type TestExample } from '@/utils/testExamples'
-import type { Netlist, ValidationResult } from '@/types/netlist'
+import type { Netlist, ValidationResult, NetlistSubmission } from '@/types/netlist'
 
 const NetlistPage: React.FC = () => {
   const [netlist, setNetlist] = useState<Netlist | null>(null)
@@ -26,9 +28,12 @@ const NetlistPage: React.FC = () => {
   const [currentFilename, setCurrentFilename] = useState<string>('')
   const [selectedExample, setSelectedExample] = useState<string>('')
   const [netlistName, setNetlistName] = useState<string>('')
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('')
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
 
   // Custom hooks for API operations
   const { uploadNetlist, isUploading } = useNetlistUpload()
+  const { user } = useAuth()
 
   // Navigation handler for clicking on validation errors
   const handleNavigateToError = useCallback((lineNumber: number, characterPosition: number) => {
@@ -84,16 +89,19 @@ const NetlistPage: React.FC = () => {
     } catch (error) {
       console.error('File load error:', error)
     }
-  }, [netlistName])
+  }, [])
 
   const handleTestExampleSelect = useCallback(async (example: TestExample) => {
     try {
-      console.log('Loading test example:', example.name, 'filename:', example.filename)
+      // Fetch the static test example file from the public directory
       const response = await fetch(`./test-examples/${example.filename}`)
+      if (!response.ok) {
+        throw new Error(`Failed to load test example: ${response.statusText}`)
+      }
       const text = await response.text()
+
       setJsonText(text)
       setCurrentFilename(example.filename)
-      console.log('Set currentFilename to:', example.filename)
 
       // Clear previous validation results when loading new content
       setValidationResult(null)
@@ -101,7 +109,7 @@ const NetlistPage: React.FC = () => {
       // Auto-populate netlist name from example name
       setNetlistName(example.name)
 
-      // Try to parse for netlist state
+      // Parse the JSON to update netlist state (this derives from the JSON)
       try {
         const parsed = JSON.parse(text)
         setNetlist(parsed)
@@ -111,12 +119,41 @@ const NetlistPage: React.FC = () => {
     } catch (error) {
       console.error('Error loading test example:', error)
     }
-  }, [netlistName])
+  }, [])
 
-  // Debug currentFilename changes
-  useEffect(() => {
-    console.log('currentFilename changed to:', currentFilename)
-  }, [currentFilename])
+  // Handle submission selection from the list
+  const handleSubmissionSelect = useCallback((submission: NetlistSubmission) => {
+    if (!submission) {
+      console.error('NetlistPage: submission is undefined!')
+      return
+    }
+
+    console.log('Loading submission:', submission.id)
+
+    // The JSON content is the source of truth - load it first
+    setJsonText(submission.json_text)
+
+    // Update filename to reflect what we're looking at
+    setCurrentFilename(submission.filename || 'Unnamed')
+    setNetlistName(submission.filename?.replace(/\.[^/.]+$/, '') || 'Unnamed')
+    setSelectedSubmissionId(submission.id)
+
+    // Reset example selection since we're loading a submission
+    setSelectedExample('')
+
+    // Parse the JSON to update netlist state (this derives from the JSON)
+    try {
+      const parsed = JSON.parse(submission.json_text)
+      setNetlist(parsed)
+    } catch (error) {
+      console.error('Failed to parse submission JSON:', error)
+      setNetlist(null)
+    }
+
+    // Load the stored validation results (these are already computed and stored)
+    setValidationResult(submission.validation_result)
+  }, [])
+
   const handleValidate = useCallback(async () => {
     if (!jsonText) return
 
@@ -137,6 +174,9 @@ const NetlistPage: React.FC = () => {
       if (result && result.validation_result) {
         setValidationResult(result.validation_result)
         console.log('Validation result set:', result.validation_result)
+
+        // Trigger refresh of submissions list
+        setRefreshTrigger(prev => prev + 1)
       } else {
         console.warn('No validation result in upload response:', result)
       }
@@ -170,8 +210,20 @@ const NetlistPage: React.FC = () => {
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
         <PanelGroup direction="horizontal">
-          {/* Left Panel - JSON Editor and Validation */}
-          <Panel defaultSize={50} minSize={30}>
+          {/* Left Panel - Submissions List */}
+          <Panel defaultSize={15} minSize={12}>
+            <SubmissionsList
+              onSubmissionSelect={handleSubmissionSelect}
+              selectedSubmissionId={selectedSubmissionId}
+              isAdmin={user?.user_type === 'admin'}
+              refreshTrigger={refreshTrigger}
+            />
+          </Panel>
+
+          <PanelResizeHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
+
+          {/* Middle Panel - JSON Editor and Validation */}
+          <Panel defaultSize={50} minSize={35}>
             <PanelGroup direction="vertical">
               {/* JSON Editor */}
               <Panel defaultSize={60} minSize={30}>
@@ -294,7 +346,7 @@ const NetlistPage: React.FC = () => {
           <PanelResizeHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
 
           {/* Right Panel - Graph Visualization */}
-          <Panel defaultSize={50} minSize={30}>
+          <Panel defaultSize={35} minSize={25}>
             <div className="flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-4 py-2">
                 <h2 className="text-sm font-medium text-gray-900">Schematic Visualization</h2>

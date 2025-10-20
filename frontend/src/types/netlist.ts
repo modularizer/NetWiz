@@ -95,7 +95,8 @@ export interface NetlistUploadRequest {
 
 export interface NetlistSubmission {
   id: string
-  netlist: Netlist
+  json_text: string
+  netlist: Netlist | null
   user_id: string | null
   submission_timestamp: string
   validation_result: ValidationResult | null
