@@ -25,6 +25,18 @@ async def auth_middleware(request: Request, call_next: Callable):
     This middleware checks if the endpoint has authentication decorators
     and enforces the appropriate access control.
     """
+    # Skip auth middleware for FastAPI internal routes
+    internal_routes = {
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+        "/docs/oauth2-redirect",
+        "/redoc/oauth2-redirect",
+    }
+
+    if request.url.path in internal_routes:
+        return await call_next(request)
+
     # Get the route handler
     route = request.scope.get("route")
     if not route or not hasattr(route, "endpoint"):

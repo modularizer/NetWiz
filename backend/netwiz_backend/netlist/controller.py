@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from motor.core import AgnosticDatabase
 from pydantic import UUID4
 
+from netwiz_backend.auth.decorators import AUTH, PUBLIC
+from netwiz_backend.auth.middleware import get_current_active_user
+from netwiz_backend.auth.models import User
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.database import get_database
 from netwiz_backend.models import PaginationParams
@@ -82,6 +85,7 @@ class NetlistController(RouteControllerABC):
             methods=["POST"],
         )
 
+    @PUBLIC
     def get_endpoints(self) -> NetlistEndpoints:
         """Generate netlist endpoints based on the configured prefix."""
         return NetlistEndpoints(
@@ -111,17 +115,18 @@ class NetlistController(RouteControllerABC):
         return ValidationRequest(netlist=tracked_netlist)
 
     # ── Handlers ───────────────────────────────────────────────────────────────
+    @AUTH
     async def get_netlist(
         self,
         submission_id: str,
         database: AgnosticDatabase = Depends(get_database),
+        current_user: User = Depends(get_current_active_user),
     ) -> NetlistGetResponse:
         """
         Retrieve a specific netlist submission by ID.
 
         Fetches a previously uploaded netlist submission from the database using its
-        unique submission ID. Includes netlist data, metadata, validation results,
-        and submission timestamp.
+        unique submission ID. Users can only access their own netlists unless they are admin.
         """
         repo = get_netlist_repository(database)
         submission = await repo.get_by_id(submission_id)
@@ -130,24 +135,58 @@ class NetlistController(RouteControllerABC):
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Netlist submission with ID '{submission_id}' not found",
             )
+
+        # Check access permissions: user must be owner or admin
+        if (
+            submission.user_id != current_user.id
+            and current_user.user_type.value != "admin"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You can only view your own netlists",
+            )
+
         return NetlistGetResponse(submission=submission)
 
+    @AUTH
     async def list_netlists(
         self,
         pagination: PaginationParams = Depends(get_pagination_params),
         database: AgnosticDatabase = Depends(get_database),
-        user_id: UUID4 | None = Query(default=None, description="Filter by user ID"),
+        current_user: User = Depends(get_current_active_user),
+        user_id: UUID4 | None = Query(
+            default=None, description="Filter by user ID (admin only)"
+        ),
+        list_all: bool = Query(
+            default=False, description="List all netlists (admin only)"
+        ),
     ) -> NetlistListResponse:
         """
         List netlist submissions with pagination and optional filtering.
 
         Retrieves a paginated list of netlist submissions from the database.
-        Results can be filtered by user ID and include pagination metadata.
+        By default, users only see their own netlists. Admins can use list_all=true
+        to see all netlists or user_id to filter by specific user.
         """
+
+        # Determine which netlists to show based on user permissions
+        if list_all or (
+            (user_id is not None and user_id != current_user.id)
+            and current_user.user_type.value != "admin"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You can only view your own netlists",
+            )
+        elif list_all:
+            # Admin can list all netlists
+            filters = {}
+        else:
+            # Admin can filter by specific user
+            filters = {"user_id": user_id or current_user.id}
+
         repo = get_netlist_repository(database)
-        submissions, total_count = await repo.list(
-            user_id=user_id, pagination=pagination
-        )
+        submissions, total_count = await repo.list(pagination=pagination, **filters)
         return NetlistListResponse(
             submissions=submissions,
             total_count=total_count,
@@ -155,6 +194,7 @@ class NetlistController(RouteControllerABC):
             page_size=pagination.page_size,
         )
 
+    @AUTH
     async def upload_netlist(
         self,
         request: NetlistUploadRequest,
@@ -193,6 +233,7 @@ class NetlistController(RouteControllerABC):
                 detail=f"Failed to upload netlist: {e!s}",
             ) from e
 
+    @PUBLIC
     async def validate_netlist(
         self,
         request: ValidationRequest = Depends(
@@ -202,6 +243,7 @@ class NetlistController(RouteControllerABC):
         """Validate a netlist without storing it in the database."""
         return await self._validate(request.netlist)
 
+    @PUBLIC
     async def validate_json_text(
         self,
         request: TextValidationRequest,

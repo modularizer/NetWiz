@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from netwiz_backend.auth.admin_init import ensure_admin_account_exists
 from netwiz_backend.auth.controller import AuthController
+from netwiz_backend.auth.middleware_auth import auth_middleware
 from netwiz_backend.auth.repository import get_auth_repository
 from netwiz_backend.config import settings
 from netwiz_backend.database import close_database, init_database
@@ -49,6 +50,7 @@ class NetwizApp:
         )
 
     def _configure_middleware(self) -> None:
+        # Add CORS middleware
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=settings.cors_origins,
@@ -56,6 +58,9 @@ class NetwizApp:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+        # Add auth middleware (must be after CORS)
+        self.app.middleware("http")(auth_middleware)
 
     def _register_controllers(self) -> None:
         # Register auth controller

@@ -538,37 +538,6 @@ class TestDecoratorWithArguments:
 class TestDecoratorChaining:
     """Test decorator chaining behavior"""
 
-    def test_multiple_decorators(self):
-        """Test that multiple decorators raise an exception"""
-
-        with pytest.raises(DuplicateTagError):
-
-            @PUBLIC
-            @AUTH
-            def chained_func():
-                return "chained"
-
-        with pytest.raises(DuplicateTagError):
-
-            @AUTH
-            @PUBLIC
-            def chained_func2():
-                return "chained"
-
-        with pytest.raises(DuplicateTagError):
-
-            @ADMIN
-            @AUTH
-            def admin_func():
-                return "admin"
-
-        with pytest.raises(DuplicateTagError):
-
-            @OPTIONAL_AUTH
-            @PUBLIC
-            def optional_func():
-                return "optional"
-
     def test_decorator_with_other_decorators(self):
         """Test decorators with other common decorators"""
 

@@ -5,6 +5,7 @@ from typing import ClassVar
 
 from fastapi import APIRouter, HTTPException
 
+from netwiz_backend.auth.decorators import ADMIN, PUBLIC
 from netwiz_backend.config import settings
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.git_metadata import get_git_metadata
@@ -61,6 +62,7 @@ class SystemController(RouteControllerABC):
             auth=self.auth_controller.get_endpoints() if self.auth_controller else None,
         )
 
+    @PUBLIC
     async def health_check(self) -> HealthResponse:
         """
         Health check endpoint for monitoring and load balancers.
@@ -91,6 +93,7 @@ class SystemController(RouteControllerABC):
             mongodb=mongodb_status,
         )
 
+    @PUBLIC
     async def root(self) -> RootResponse:
         """
         Root endpoint with basic API information.
@@ -114,6 +117,7 @@ class SystemController(RouteControllerABC):
             git=git_metadata,
         )
 
+    @PUBLIC
     async def api_info(self) -> ApiInfoResponse:
         """
         Detailed API information endpoint.
@@ -141,6 +145,7 @@ class SystemController(RouteControllerABC):
             endpoints=self.get_endpoints(),
         )
 
+    @ADMIN
     async def kill_server(self) -> KillServerResponse:
         """
         Kill the server (development only).
