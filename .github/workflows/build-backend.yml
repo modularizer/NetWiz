@@ -167,41 +167,6 @@ jobs:
 
         echo "✅ All integration tests passed!"
 
-    - name: Run integration tests
-      if: github.event_name != 'pull_request'
-      run: |
-        cd backend
-        # Start a test MongoDB container for integration tests
-        docker run -d --name test-mongodb \
-          -e MONGO_INITDB_ROOT_USERNAME=test \
-          -e MONGO_INITDB_ROOT_PASSWORD=test \
-          -p 27017:27017 \
-          mongo:latest
-
-        # Wait for MongoDB to be ready
-        sleep 15
-
-        # Set environment variables for integration tests
-        export MONGODB_URI="mongodb://test:test@localhost:27017"
-        export MONGODB_DATABASE="test"
-        export CORS_ORIGINS="http://localhost:3000"
-
-        # Run integration tests
-        pytest tests/integration/ -v --cov=netwiz_backend --cov-append --cov-report=xml --cov-report=term-missing
-
-        # Clean up MongoDB container
-        docker stop test-mongodb
-        docker rm test-mongodb
-
-    - name: Upload integration test coverage
-      if: github.event_name != 'pull_request'
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./backend/coverage.xml
-        flags: backend-integration
-        name: backend-integration-coverage
-        fail_ci_if_error: false
-
     - name: Promote to latest
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       run: |
