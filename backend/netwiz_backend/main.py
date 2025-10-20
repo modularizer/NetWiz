@@ -51,7 +51,8 @@ class NetwizApp:
         )
 
     def _register_controllers(self) -> None:
-        netlist_controller = NetlistController(prefix="/netlist").register(self.app)
+        netlist_controller = NetlistController(prefix="/netlist")
+        netlist_controller.register(self.app)
         SystemController(prefix="", netlist_controller=netlist_controller).register(
             self.app
         )
