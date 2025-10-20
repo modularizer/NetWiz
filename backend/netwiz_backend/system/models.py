@@ -2,22 +2,11 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, constr
 
-# Import NetlistEndpoints from netlist models
-try:
-    from netwiz_backend.netlist.models import NetlistEndpoints
-except ImportError:
-    # Fallback for when netlist models aren't available
-    class NetlistEndpoints(BaseModel):
-        """Netlist endpoints information"""
+# Import AuthEndpoints from auth models
+from netwiz_backend.auth.models import AuthEndpoints
 
-        upload: constr(strip_whitespace=True) = Field(
-            ..., description="Upload endpoint"
-        )
-        list: constr(strip_whitespace=True) = Field(..., description="List endpoint")
-        get: constr(strip_whitespace=True) = Field(..., description="Get endpoint")
-        validate: constr(strip_whitespace=True) = Field(
-            ..., description="Validate endpoint"
-        )
+# Import NetlistEndpoints from netlist models
+from netwiz_backend.netlist.models import NetlistEndpoints
 
 
 class GitMetadata(BaseModel):
@@ -109,6 +98,9 @@ class EndpointsInfo(BaseModel):
     health: constr(strip_whitespace=True) = Field(..., description="Health endpoint")
     netlist: NetlistEndpoints | None = Field(
         default=None, description="Netlist endpoints"
+    )
+    auth: AuthEndpoints | None = Field(
+        default=None, description="Authentication endpoints"
     )
 
 

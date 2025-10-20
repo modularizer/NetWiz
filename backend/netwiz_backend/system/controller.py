@@ -25,9 +25,10 @@ class SystemController(RouteControllerABC):
 
     tags: ClassVar[list[str]] = ["system"]
 
-    def __init__(self, prefix: str = "", netlist_controller=None):
+    def __init__(self, prefix: str = "", netlist_controller=None, auth_controller=None):
         super().__init__(prefix=prefix)
         self.netlist_controller = netlist_controller
+        self.auth_controller = auth_controller
 
     def _register_routes(self, router: APIRouter) -> None:
         router.add_api_route(
@@ -57,6 +58,7 @@ class SystemController(RouteControllerABC):
             netlist=self.netlist_controller.get_endpoints()
             if self.netlist_controller
             else None,
+            auth=self.auth_controller.get_endpoints() if self.auth_controller else None,
         )
 
     async def health_check(self) -> HealthResponse:

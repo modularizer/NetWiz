@@ -74,6 +74,34 @@ class Settings(BaseSettings):
     # API Configuration
     api_prefix: str = Field(default="/api", alias="API_PREFIX")
 
+    # JWT Configuration
+    jwt_secret_key: str = Field(
+        default="your-secret-key-change-in-production", alias="JWT_SECRET_KEY"
+    )
+    jwt_refresh_secret_key: str = Field(
+        default="your-refresh-secret-key-change-in-production",
+        alias="JWT_REFRESH_SECRET_KEY",
+    )
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_access_token_expire_minutes: int = Field(
+        default=30, alias="JWT_ACCESS_TOKEN_EXPIRE_MINUTES"
+    )
+    jwt_refresh_token_expire_days: int = Field(
+        default=7, alias="JWT_REFRESH_TOKEN_EXPIRE_DAYS"
+    )
+
+    # Password Configuration
+    password_pepper: str = Field(
+        default="NetWizAOSDFAMSDF",
+        alias="PASSWORD_PEPPER",
+        description="Application-specific pepper for password hashing",
+    )
+    admin_temp_password: str = Field(
+        default="admin",
+        alias="ADMIN_TEMP_PASSWORD",
+        description="Temporary password for auto-created admin account",
+    )
+
 
 # Create global settings instance
 settings = Settings()

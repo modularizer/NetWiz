@@ -6,6 +6,9 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from netwiz_backend.auth.admin_init import ensure_admin_account_exists
+from netwiz_backend.auth.controller import AuthController
+from netwiz_backend.auth.repository import get_auth_repository
 from netwiz_backend.config import settings
 from netwiz_backend.database import close_database, init_database
 from netwiz_backend.models import ErrorResponse
@@ -36,6 +39,10 @@ class NetwizApp:
             debug=settings.debug,
             openapi_url="/openapi.json",
             openapi_tags=[
+                {
+                    "name": "auth",
+                    "description": "User authentication and authorization",
+                },
                 {"name": "netlist", "description": "Manage PCB netlists"},
                 {"name": "system", "description": "System and health endpoints"},
             ],
@@ -51,11 +58,20 @@ class NetwizApp:
         )
 
     def _register_controllers(self) -> None:
+        # Register auth controller
+        auth_controller = AuthController(prefix="/auth")
+        auth_controller.register(self.app)
+
+        # Register netlist controller
         netlist_controller = NetlistController(prefix="/netlist")
         netlist_controller.register(self.app)
-        SystemController(prefix="", netlist_controller=netlist_controller).register(
-            self.app
-        )
+
+        # Register system controller
+        SystemController(
+            prefix="",
+            netlist_controller=netlist_controller,
+            auth_controller=auth_controller,
+        ).register(self.app)
 
     def _register_lifecycle(self) -> None:
         # static: they don’t depend on instance state
@@ -74,6 +90,14 @@ class NetwizApp:
     @staticmethod
     async def on_startup() -> None:
         await init_database()
+
+        # Ensure admin account exists
+        from netwiz_backend.database import get_database
+
+        async for database in get_database():
+            auth_repo = get_auth_repository(database)
+            await ensure_admin_account_exists(auth_repo)
+            break
 
     @staticmethod
     async def on_shutdown() -> None:
