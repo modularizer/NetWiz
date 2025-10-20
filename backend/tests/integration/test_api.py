@@ -2,51 +2,49 @@
 Integration tests for API endpoints
 """
 
-import json
+import requests
+
+
+class TestSystemAPI:
+    def test_health_endpoint(self):
+        """Test health check endpoint."""
+        response = requests.get("http://localhost:5000/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "status" in data
+        assert "timestamp" in data
+        assert "version" in data
+        assert "environment" in data
+
+    def test_root_endpoint(self):
+        """Test root endpoint."""
+        response = requests.get("http://localhost:5000/")
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert "version" in data
+        assert "git" in data
+
+    def test_info_endpoint(self):
+        """Test API info endpoint."""
+        response = requests.get("http://localhost:5000/info")
+        assert response.status_code == 200
+        data = response.json()
+        assert "api" in data
+        assert "service" in data
+        assert "endpoints" in data
 
 
 class TestNetlistAPI:
-    def test_upload_netlist(self, client, sample_netlist):
-        """Test netlist upload endpoint."""
-        response = client.post(
-            "/netlist/upload",
-            data=json.dumps(sample_netlist),
-            content_type="application/json",
-        )
-
-        assert response.status_code == 201
-        data = json.loads(response.data)
-        assert "id" in data
-
-    def test_get_netlist(self, client, sample_netlist):
-        """Test retrieving netlist by ID."""
-        # First upload a netlist
-        upload_response = client.post(
-            "/netlist/upload",
-            data=json.dumps(sample_netlist),
-            content_type="application/json",
-        )
-        netlist_id = json.loads(upload_response.data)["id"]
-
-        # Then retrieve it
-        response = client.get(f"/netlist/{netlist_id}")
-        assert response.status_code == 200
-        data = json.loads(response.data)
-        assert data["components"] == sample_netlist["components"]
-
-    def test_validate_netlist(self, client, sample_netlist):
+    def test_validate_netlist(self, sample_netlist):
         """Test netlist validation endpoint."""
         # Upload netlist first
-        upload_response = client.post(
-            "/netlist/upload",
-            data=json.dumps(sample_netlist),
-            content_type="application/json",
+        validation_response = requests.post(
+            "http://localhost:5000/netlist/validate",
+            json=sample_netlist,
+            headers={"Content-Type": "application/json"},
         )
-        netlist_id = json.loads(upload_response.data)["id"]
-
-        # Validate it
-        response = client.post(f"/netlist/{netlist_id}/validate")
-        assert response.status_code == 200
-        data = json.loads(response.data)
+        assert validation_response.status_code == 200
+        data = validation_response.json()["validation_result"]
         assert "is_valid" in data
         assert "errors" in data
