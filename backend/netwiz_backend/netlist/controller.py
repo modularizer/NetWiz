@@ -102,9 +102,10 @@ class NetlistController(RouteControllerABC):
 
         # Check access permissions: user must be owner or admin
         if (
-            submission.user_id != current_user.id
+            str(submission.user_id) != str(current_user.id)
             and current_user.user_type.value != "admin"
         ):
+            print(current_user.id, current_user.username, submission.user_id)
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied: You can only view your own netlists",

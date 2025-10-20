@@ -23,32 +23,41 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
   useEffect(() => {
     if (!netlist || !svgRef.current) return
 
-    const svg = d3.select(svgRef.current)
-    svg.selectAll('*').remove() // Clear previous content
+    try {
+      const svg = d3.select(svgRef.current)
+      svg.selectAll('*').remove() // Clear previous content
 
-    const width = 800
-    const height = 600
+      const width = 800
+      const height = 600
 
-    // Set up SVG
-    svg.attr('width', width).attr('height', height)
+      // Set up SVG
+      svg.attr('width', width).attr('height', height)
 
-    // Create zoom behavior
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.1, 4])
-      .on('zoom', (event) => {
-        g.attr('transform', event.transform)
-      })
+      // Create zoom behavior
+      const zoom = d3.zoom<SVGSVGElement, unknown>()
+        .scaleExtent([0.1, 4])
+        .on('zoom', (event) => {
+          g.attr('transform', event.transform)
+        })
 
-    svg.call(zoom)
+      svg.call(zoom)
 
-    // Create main group for zoomable content
-    const g = svg.append('g')
+      // Create main group for zoomable content
+      const g = svg.append('g')
 
-    // Create nodes (components) with proper D3 structure
-    const nodes = netlist.components.map(component => ({
-      id: component.name,
-      ...component
-    }))
+      // Validate netlist structure before processing
+      if (!netlist.components || !Array.isArray(netlist.components)) {
+        throw new Error('Invalid netlist: components array is missing or not an array')
+      }
+      if (!netlist.nets || !Array.isArray(netlist.nets)) {
+        throw new Error('Invalid netlist: nets array is missing or not an array')
+      }
+
+      // Create nodes (components) with proper D3 structure
+      const nodes = netlist.components.map(component => ({
+        id: component.name,
+        ...component
+      }))
 
     // Create links by finding connections between components through nets
     const links: Array<{source: string, target: string, net: any}> = []
@@ -151,6 +160,21 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
     // Cleanup
     return () => {
       simulation.stop()
+    }
+    } catch (error) {
+      console.error('GraphVisualization error:', error)
+      // Clear the SVG and show error state
+      if (svgRef.current) {
+        const svg = d3.select(svgRef.current)
+        svg.selectAll('*').remove()
+        svg.append('text')
+          .attr('x', 400)
+          .attr('y', 300)
+          .attr('text-anchor', 'middle')
+          .attr('font-size', '16px')
+          .attr('fill', 'red')
+          .text('Error rendering graph')
+      }
     }
   }, [netlist, validationResult])
 

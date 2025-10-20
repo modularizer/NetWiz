@@ -160,12 +160,20 @@ const NetlistPage: React.FC = () => {
     try {
       // Create a file object from the JSON text
       const blob = new Blob([jsonText], { type: 'application/json' })
-      const file = new File([blob], currentFilename || 'netlist.json', { type: 'application/json' })
+      // Use the manually entered netlistName as the filename, with fallbacks
+      let filename = netlistName || currentFilename || 'netlist.json'
+
+      // Ensure filename has .json extension
+      if (!filename.toLowerCase().endsWith('.json')) {
+        filename = filename + '.json'
+      }
+
+      const file = new File([blob], filename, { type: 'application/json' })
 
       // Upload to server
       const result = await uploadNetlist({
         file,
-        filename: netlistName || currentFilename || 'netlist.json'
+        filename: filename
       })
 
       console.log('Upload successful:', result)
