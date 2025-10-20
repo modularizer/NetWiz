@@ -1,23 +1,11 @@
 name: Build and Push Backend Container
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-    paths:
-      - 'backend/**'
-      - 'docker-compose.prod.yml'
-      - 'docker-compose.local.yml'
-      - '.github/workflows/build-backend.yml'
-      - '.github/workflows/deployment-tests.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'backend/**'
-      - 'docker-compose.prod.yml'
-      - 'docker-compose.local.yml'
-      - '.github/workflows/build-backend.yml'
-      - '.github/workflows/deployment-tests.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -160,6 +148,8 @@ jobs:
 
         # Test OpenAPI endpoint
         curl -f http://localhost:5000/openapi.json || exit 1
+
+        pytest tests/integration/ -v
 
         # Clean up
         docker stop $CONTAINER_ID

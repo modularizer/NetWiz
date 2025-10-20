@@ -1,21 +1,11 @@
 name: Build and Push Frontend Container
 
 on:
-  push:
-    branches: [ main ]
-    tags: [ 'v*' ]
-    paths:
-      - 'frontend/**'
-      - 'docker-compose.local.yml'
-      - '.github/workflows/build-frontend.yml'
-      - '.github/workflows/deployment-tests.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'frontend/**'
-      - 'docker-compose.local.yml'
-      - '.github/workflows/build-frontend.yml'
-      - '.github/workflows/deployment-tests.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io

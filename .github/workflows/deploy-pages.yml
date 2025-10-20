@@ -5,6 +5,8 @@ on:
     workflows: ["Build and Push Frontend Container"]
     types: [completed]
     branches: [main]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
