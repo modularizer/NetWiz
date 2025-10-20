@@ -50,40 +50,45 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
   const { errors, warnings, auto_fill_suggestions, validation_rules_applied } = validationResult
 
   return (
-    <div className="h-full bg-gray-50 p-4 space-y-4 overflow-auto">
-      {/* Validation Summary */}
-      <div className="bg-white rounded-lg p-4 border border-gray-200">
-        <div className="flex items-center space-x-2 mb-2">
-          {validationResult.is_valid ? (
-            <CheckCircle className="w-5 h-5 text-success-500" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-error-500" />
-          )}
-          <h3 className="font-medium text-gray-900">
-            {validationResult.is_valid ? 'Validation Passed' : 'Validation Failed'}
-          </h3>
-        </div>
-        <div className="grid grid-cols-3 gap-4 text-sm">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-error-600">{errors?.length || 0}</div>
-            <div className="text-gray-500">Errors</div>
+    <div className="h-full flex flex-col bg-gray-50">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 p-4 pb-0">
+        <div className="bg-white rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center space-x-2 mb-2">
+            {validationResult.is_valid ? (
+              <CheckCircle className="w-5 h-5 text-success-500" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-error-500" />
+            )}
+            <h3 className="font-medium text-gray-900">
+              {validationResult.is_valid ? 'Validation Passed' : 'Validation Failed'}
+            </h3>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-warning-600">{warnings?.length || 0}</div>
-            <div className="text-gray-500">Warnings</div>
-          </div>
-          <div className="text-center">
-            <div
-              className="text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
-              onClick={() => setIsRulesModalOpen(true)}
-              title="Click to view rule descriptions"
-            >
-              {validation_rules_applied?.length || 0}
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-error-600">{errors?.length || 0}</div>
+              <div className="text-gray-500">Errors</div>
             </div>
-            <div className="text-gray-500">Rules Applied</div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-warning-600">{warnings?.length || 0}</div>
+              <div className="text-gray-500">Warnings</div>
+            </div>
+            <div className="text-center">
+              <div
+                className="text-2xl font-bold text-primary-600 cursor-pointer hover:text-primary-700 transition-colors"
+                onClick={() => setIsRulesModalOpen(true)}
+                title="Click to view rule descriptions"
+              >
+                {validation_rules_applied?.length || 0}
+              </div>
+              <div className="text-gray-500">Rules Applied</div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto p-4 pt-2 space-y-4">
 
       {/* Errors */}
       {errors && errors.length > 0 && (
@@ -251,6 +256,7 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
           </div>
         </div>
       )}
+      </div>
 
       {/* Rules Modal */}
       <RulesModal

@@ -235,7 +235,7 @@ const NetlistPage: React.FC = () => {
             <PanelGroup direction="vertical">
               {/* JSON Editor */}
               <Panel defaultSize={60} minSize={30}>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                   <div className="bg-white border-b border-gray-200 px-4 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
@@ -305,7 +305,7 @@ const NetlistPage: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-h-0">
                     <JsonEditor
                       value={jsonText}
                       onChange={handleJsonTextChange}
@@ -320,7 +320,7 @@ const NetlistPage: React.FC = () => {
 
               {/* Validation Panel */}
               <Panel defaultSize={40} minSize={20}>
-                <div className="flex flex-col h-full">
+                <div className="flex flex-col h-full overflow-hidden">
                   <div className="bg-white border-b border-gray-200 px-4 py-2">
                     <div className="flex items-center space-x-2">
                       <h2 className="text-sm font-medium text-gray-900">Validation Results</h2>
@@ -340,7 +340,7 @@ const NetlistPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 overflow-auto">
+                  <div className="flex-1 min-h-0">
                     <ValidationPanel
                       validationResult={validationResult}
                       onNavigateToError={handleNavigateToError}

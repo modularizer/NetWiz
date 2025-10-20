@@ -2,11 +2,51 @@
 Authentication models for NetWiz backend
 """
 
+import re
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
 
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, constr, validator
+
+
+def validate_username_format(username: str) -> str:
+    """
+    Validate username format:
+    - 3-20 characters long
+    - Only lowercase letters, numbers, and dashes
+    - Must start with a letter
+    - Cannot end with dash
+    - Cannot have consecutive dashes
+    """
+    if len(username) < 3:
+        raise ValueError("Username must be at least 3 characters long")
+    if len(username) > 20:
+        raise ValueError("Username must be no more than 20 characters long")
+
+    # Must be lowercase
+    if username != username.lower():
+        raise ValueError("Username must be lowercase")
+
+    # Check for invalid characters (only lowercase letters, numbers and dashes allowed)
+    if not re.match(r"^[a-z0-9-]+$", username):
+        raise ValueError(
+            "Username can only contain lowercase letters, numbers, and dashes"
+        )
+
+    # Must start with a letter
+    if not username[0].isalpha():
+        raise ValueError("Username must start with a letter")
+
+    # Cannot end with dash
+    if username.endswith("-"):
+        raise ValueError("Username cannot end with a dash")
+
+    # Cannot have consecutive dashes
+    if "--" in username:
+        raise ValueError("Username cannot have consecutive dashes")
+
+    return username
 
 
 class UserType(str, Enum):
@@ -22,8 +62,8 @@ class User(BaseModel):
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()), description="Unique user identifier"
     )
-    username: constr(strip_whitespace=True, min_length=3, max_length=50) = Field(
-        ..., description="Username (3-50 characters)"
+    username: str = Field(
+        ..., description="Username (3-20 characters, alphanumeric and dashes only)"
     )
     hashed_password: str = Field(..., description="Hashed password")
     user_type: UserType = Field(
@@ -37,6 +77,10 @@ class User(BaseModel):
         default=True, description="Whether the user account is active"
     )
 
+    @validator("username")
+    def validate_username(cls, v):
+        return validate_username_format(v)
+
     def __init__(self, **data):
         super().__init__(**data)
         # Auto-set admin type if username is "admin" (case insensitive)
@@ -47,12 +91,16 @@ class User(BaseModel):
 class UserCreate(BaseModel):
     """Model for user creation request"""
 
-    username: constr(strip_whitespace=True, min_length=3, max_length=50) = Field(
-        ..., description="Username (3-50 characters)"
+    username: str = Field(
+        ..., description="Username (3-20 characters, alphanumeric and dashes only)"
     )
     password: constr(strip_whitespace=True, min_length=6) = Field(
         ..., description="Password (minimum 6 characters)"
     )
+
+    @validator("username")
+    def validate_username(cls, v):
+        return validate_username_format(v)
 
 
 class UserLogin(BaseModel):
@@ -106,6 +154,27 @@ class UserResponse(BaseModel):
     is_active: bool = Field(..., description="Whether the user account is active")
 
 
+class UsernameCheckRequest(BaseModel):
+    """Username availability check request model"""
+
+    username: str = Field(
+        ...,
+        description="Username to check (3-20 characters, alphanumeric and dashes only)",
+    )
+
+    @validator("username")
+    def validate_username(cls, v):
+        return validate_username_format(v)
+
+
+class UsernameCheckResponse(BaseModel):
+    """Username availability check response model"""
+
+    username: str = Field(..., description="Username that was checked")
+    available: bool = Field(..., description="Whether the username is available")
+    message: str = Field(..., description="Human-readable message about availability")
+
+
 class AuthEndpoints(BaseModel):
     """Authentication endpoints configuration"""
 
@@ -115,3 +184,4 @@ class AuthEndpoints(BaseModel):
     refresh: str = Field(..., description="Refresh token endpoint")
     change_password: str = Field(..., description="Change password endpoint")
     me: str = Field(..., description="Get current user endpoint")
+    check_username: str = Field(..., description="Check username availability endpoint")

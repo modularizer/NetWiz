@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { ChangePasswordRequest } from '@/types/auth'
 
@@ -22,6 +23,9 @@ export function ChangePasswordForm({ onSuccess, onCancel }: ChangePasswordFormPr
     confirmNewPassword: '',
   })
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const validateForm = () => {
     const errors: Record<string, string> = {}
@@ -99,18 +103,31 @@ export function ChangePasswordForm({ onSuccess, onCancel }: ChangePasswordFormPr
           <label htmlFor="current_password" className="block text-sm font-medium text-gray-700 mb-1">
             Current Password
           </label>
-          <input
-            type="password"
-            id="current_password"
-            name="current_password"
-            value={formData.current_password}
-            onChange={handleChange}
-            required
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              validationErrors.current_password ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Enter your current password"
-          />
+          <div className="relative">
+            <input
+              type={showCurrentPassword ? "text" : "password"}
+              id="current_password"
+              name="current_password"
+              value={formData.current_password}
+              onChange={handleChange}
+              required
+              className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                validationErrors.current_password ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Enter your current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              {showCurrentPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {validationErrors.current_password && (
             <p className="mt-1 text-sm text-red-600">{validationErrors.current_password}</p>
           )}
@@ -120,18 +137,31 @@ export function ChangePasswordForm({ onSuccess, onCancel }: ChangePasswordFormPr
           <label htmlFor="new_password" className="block text-sm font-medium text-gray-700 mb-1">
             New Password
           </label>
-          <input
-            type="password"
-            id="new_password"
-            name="new_password"
-            value={formData.new_password}
-            onChange={handleChange}
-            required
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              validationErrors.new_password ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Enter your new password"
-          />
+          <div className="relative">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              id="new_password"
+              name="new_password"
+              value={formData.new_password}
+              onChange={handleChange}
+              required
+              className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                validationErrors.new_password ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Enter your new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              {showNewPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {validationErrors.new_password && (
             <p className="mt-1 text-sm text-red-600">{validationErrors.new_password}</p>
           )}
@@ -141,18 +171,31 @@ export function ChangePasswordForm({ onSuccess, onCancel }: ChangePasswordFormPr
           <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-gray-700 mb-1">
             Confirm New Password
           </label>
-          <input
-            type="password"
-            id="confirmNewPassword"
-            name="confirmNewPassword"
-            value={formData.confirmNewPassword}
-            onChange={handleChange}
-            required
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-              validationErrors.confirmNewPassword ? 'border-red-300' : 'border-gray-300'
-            }`}
-            placeholder="Confirm your new password"
-          />
+          <div className="relative">
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              id="confirmNewPassword"
+              name="confirmNewPassword"
+              value={formData.confirmNewPassword}
+              onChange={handleChange}
+              required
+              className={`w-full px-3 py-2 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                validationErrors.confirmNewPassword ? 'border-red-300' : 'border-gray-300'
+              }`}
+              placeholder="Confirm your new password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
           {validationErrors.confirmNewPassword && (
             <p className="mt-1 text-sm text-red-600">{validationErrors.confirmNewPassword}</p>
           )}

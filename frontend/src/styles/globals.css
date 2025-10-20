@@ -70,4 +70,14 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Ensure proper panel resizing behavior */
+  [data-panel-group] {
+    height: 100%;
+  }
+
+  [data-panel] {
+    height: 100%;
+    overflow: hidden;
+  }
 }

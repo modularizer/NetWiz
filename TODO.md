@@ -37,8 +37,6 @@ Build a small, proof-of-concept application which lets users:
 - [x] **Must be deployable + runnable in common cloud hosting services (e.g. AWS) using a docker container**
 
 ## Bugs
-- [ ] scroll to bottom of json
-- [ ] header disappeared on json editor when scrolled down
 - [ ] no button to show password that i typed
 
 ## Extras

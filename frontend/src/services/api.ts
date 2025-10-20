@@ -167,6 +167,19 @@ class NetWizApiClient {
     return response.data
   }
 
+  async checkUsernameAvailability(username: string): Promise<{
+    username: string
+    available: boolean
+    message: string
+  }> {
+    const response = await this.client.post<{
+      username: string
+      available: boolean
+      message: string
+    }>('/auth/check-username', { username })
+    return response.data
+  }
+
   async validateNetlist(
     netlist: any
   ): Promise<ValidationResponse> {

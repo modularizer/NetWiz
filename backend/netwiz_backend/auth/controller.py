@@ -26,6 +26,8 @@ from netwiz_backend.auth.models import (
     User,
     UserCreate,
     UserLogin,
+    UsernameCheckRequest,
+    UsernameCheckResponse,
     UserResponse,
     UserType,
 )
@@ -97,6 +99,13 @@ class AuthController(RouteControllerABC):
             dependencies=[Depends(get_current_active_user)],
         )
 
+        router.add_api_route(
+            "/check-username",
+            self.check_username_availability,
+            methods=["POST"],
+            response_model=UsernameCheckResponse,
+        )
+
     def get_endpoints(self) -> AuthEndpoints:
         """Generate auth endpoints based on the configured prefix."""
         return AuthEndpoints(
@@ -106,6 +115,7 @@ class AuthController(RouteControllerABC):
             refresh=f"{self.prefix}/refresh",
             change_password=f"{self.prefix}/change-password",
             me=f"{self.prefix}/me",
+            check_username=f"{self.prefix}/check-username",
         )
 
     @PUBLIC
@@ -356,3 +366,32 @@ class AuthController(RouteControllerABC):
             created_at=user.created_at,
             is_active=user.is_active,
         )
+
+    @PUBLIC
+    async def check_username_availability(
+        self,
+        username_check: UsernameCheckRequest,
+        database: AgnosticDatabase = Depends(get_database),
+    ) -> UsernameCheckResponse:
+        """
+        Check if a username is available for registration.
+
+        Returns whether the username is available and a descriptive message.
+        """
+        auth_repo = get_auth_repository(database)
+
+        # Check if user already exists
+        user_exists = await auth_repo.user_exists(username_check.username)
+
+        if user_exists:
+            return UsernameCheckResponse(
+                username=username_check.username,
+                available=False,
+                message=f"Username '{username_check.username}' is already taken",
+            )
+        else:
+            return UsernameCheckResponse(
+                username=username_check.username,
+                available=True,
+                message=f"Username '{username_check.username}' is available",
+            )
