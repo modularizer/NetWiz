@@ -3,9 +3,10 @@ import signal
 from datetime import datetime, timezone
 from typing import ClassVar
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from netwiz_backend.auth.decorators import ADMIN, PUBLIC
+from netwiz_backend.auth.middleware import get_current_active_user
 from netwiz_backend.config import settings
 from netwiz_backend.controller_abc import RouteControllerABC
 from netwiz_backend.git_metadata import get_git_metadata
@@ -46,6 +47,11 @@ class SystemController(RouteControllerABC):
             self.kill_server,
             methods=["POST"],
             response_model=KillServerResponse,
+            dependencies=[Depends(get_current_active_user)],
+            openapi_extra={
+                "x-admin-only": True,
+                "description": "Kill the server (admin only). Only available in development mode.",
+            },
         )
 
     def get_endpoints(self) -> EndpointsInfo:

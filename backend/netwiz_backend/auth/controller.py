@@ -64,6 +64,7 @@ class AuthController(RouteControllerABC):
             self.signout,
             methods=["POST"],
             response_model=dict,
+            dependencies=[Depends(get_current_active_user)],
         )
 
         router.add_api_route(
@@ -78,6 +79,7 @@ class AuthController(RouteControllerABC):
             self.change_password,
             methods=["POST"],
             response_model=dict,
+            dependencies=[Depends(get_current_active_user)],
         )
 
         router.add_api_route(
@@ -85,6 +87,7 @@ class AuthController(RouteControllerABC):
             self.get_current_user,
             methods=["GET"],
             response_model=UserResponse,
+            dependencies=[Depends(get_current_active_user)],
         )
 
     def get_endpoints(self) -> AuthEndpoints:

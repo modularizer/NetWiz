@@ -47,6 +47,19 @@ class NetwizApp:
                 {"name": "netlist", "description": "Manage PCB netlists"},
                 {"name": "system", "description": "System and health endpoints"},
             ],
+            # Add security schemes for OpenAPI documentation
+            openapi_extra={
+                "components": {
+                    "securitySchemes": {
+                        "HTTPBearer": {
+                            "type": "http",
+                            "scheme": "bearer",
+                            "bearerFormat": "JWT",
+                            "description": "JWT token for authentication",
+                        }
+                    }
+                }
+            },
         )
 
     def _configure_middleware(self) -> None:

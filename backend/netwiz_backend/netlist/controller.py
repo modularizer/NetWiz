@@ -54,6 +54,10 @@ class NetlistController(RouteControllerABC):
             self.get_netlist,
             methods=["GET"],
             response_model=NetlistGetResponse,
+            dependencies=[Depends(get_current_active_user)],
+            openapi_extra={
+                "description": "Retrieve a specific netlist submission. Users can only access their own netlists unless they are admin."
+            },
         )
 
         router.add_api_route(
@@ -61,6 +65,10 @@ class NetlistController(RouteControllerABC):
             self.list_netlists,
             methods=["GET"],
             response_model=NetlistListResponse,
+            dependencies=[Depends(get_current_active_user)],
+            openapi_extra={
+                "description": "List netlist submissions. Users see only their own netlists by default. Admins can use list_all=true or user_id parameter."
+            },
         )
 
         router.add_api_route(
@@ -69,6 +77,7 @@ class NetlistController(RouteControllerABC):
             methods=["POST"],
             response_model=NetlistUploadResponse,
             status_code=status.HTTP_201_CREATED,
+            dependencies=[Depends(get_current_active_user)],
         )
 
         # Note: to inject a custom dependency result (ValidationRequest) into the handler
