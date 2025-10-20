@@ -20,9 +20,21 @@ class DatabaseManager:
     async def connect(self) -> None:
         """Initialize database connection"""
         if self._client is None:
-            self._client = AsyncIOMotorClient(settings.mongodb_uri)
-            self._database = self._client[settings.mongodb_database]
-            print(f"✅ Connected to MongoDB: {settings.mongodb_database}")
+            try:
+                self._client = AsyncIOMotorClient(settings.mongodb_uri)
+                self._database = self._client[settings.mongodb_database]
+
+                # Actually test the connection by pinging the server
+                await self._client.admin.command("ping")
+                print(f"✅ Connected to MongoDB: {settings.mongodb_database}")
+            except Exception as e:
+                print(f"❌ Failed to connect to MongoDB: {e}")
+                # Clean up failed connection
+                if self._client:
+                    self._client.close()
+                    self._client = None
+                    self._database = None
+                # Don't raise - let the application continue without database
 
     async def disconnect(self) -> None:
         """Close database connection"""

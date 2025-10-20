@@ -107,15 +107,26 @@ class NetwizApp:
     # ── lifecycle (static) ─────────────────────────────────────────────────────
     @staticmethod
     async def on_startup() -> None:
-        await init_database()
+        try:
+            await init_database()
+            print("✅ Database initialization completed")
+        except Exception as e:
+            print(f"⚠️  Database initialization failed: {e}")
+            print("⚠️  Application will continue without database connection")
+            return
 
         # Ensure admin account exists
-        from netwiz_backend.database import get_database
+        try:
+            from netwiz_backend.database import get_database
 
-        async for database in get_database():
-            auth_repo = get_auth_repository(database)
-            await ensure_admin_account_exists(auth_repo)
-            break
+            async for database in get_database():
+                auth_repo = get_auth_repository(database)
+                await ensure_admin_account_exists(auth_repo)
+                break
+            print("✅ Admin account initialization completed")
+        except Exception as e:
+            print(f"⚠️  Admin account initialization failed: {e}")
+            print("⚠️  Application will continue without admin account setup")
 
     @staticmethod
     async def on_shutdown() -> None:
