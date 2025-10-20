@@ -1,65 +1,40 @@
-# PCB Netlist Visualizer + Validator
+# NetWiz
+**PCB Netlist Visualizer + Validator** _by Torin Halsted_
 
 A proof-of-concept application for visualizing and validating PCB netlist data. This tool allows users to upload netlist files, visualize them as interactive graphs, and validate them against basic electrical rules.
 
+# Architecture
+- Frontend: React using Typescript and vite
+- Backend: Python using FastAPI
+- Database: MongoDB
+- Deployment: `docker-compose`, individual `docker` images, or mixed approach with statically hosted frontend at https://modularizer.github.io/NetWiz/ plus locally hosted backend
 
-## Demo (No Source Code Required)
-Want to run NetWiz without cloning the repository? Just use the GitHub Pages static frontend and download and run the Docker containers as the backend:
+- [How to Run](#how-to-run-netwiz)
+- [Features](#features)
+  - [Validation Rules](#validation-rules)
 
-1. Go to frontend at https://modularizer.github.io/NetWiz/
-2. Launch backend with the following oneliner
+# How to Run NetWiz
+There are an abundance of ways to run Netwiz. Here are just a few...
+- [Oneliner](#demo-no-source-code-required)
+- [Docker](#running-with-docker)
+- [From Source](#from-source)
+
+
+## Oneliner (No Source Code Required)
+Want to run NetWiz without cloning the repository? Just download and run the docker-compose, which will pull the appropriate docker images from the GitHub Package Registry
+
+1. Make sure that you have `docker`,`docker-compose`, and `curl` installed and your current user has access to run them
 ```bash
 COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) &&
-curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" &&
+curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.local.yml -o "$f" &&
 trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT &&
 docker-compose -p netwiz -f "$f" up
 ```
 
 
-## Features
+## Running with Docker
+Okay with cloning? clone the repo and then locally build and run the docker containers using `docker-compose`
 
-### Core Functionality
-1. **Netlist Upload**: Upload JSON-formatted netlist files with custom schema
-2. **Interactive Visualization**: Render netlists as graphs with components as nodes and nets as edges
-3. **Data Validation**: Validate netlist data against electrical rules and constraints
-4. **Database Storage**: Store submissions in MongoDB for persistence
-5. **User Management**: Track submissions per user
-6. **Validation Results**: Display detailed validation results with highlighted violations
-
-### Netlist Schema
-The application supports netlist files containing:
-- **Components**: List of electronic components (ICs, resistors, connectors, etc.) with their pins
-- **Nets**: Electrical connection definitions
-- **Connections**: Mapping between nets and component pins
-
-### Validation Rules
-- Name data validation (no blank names)
-- Ground (GND) connectivity verification
-- Additional electrical rule validation (extensible)
-
-## Architecture
-
-- **Frontend**: React-based web interface
-- **Backend**: Python FastAPI server
-- **Database**: MongoDB for data persistence
-- **Deployment**: Docker containerization for cloud deployment
-
-## Requirements
-
-- Client-server architecture
-- Local development support
-- Cloud deployment ready (AWS, etc.)
-- Docker containerization
-
-
-## Quick Start (Standard)
-### Prerequisites
-- Python 3.10+
-- Node.js 16+
-- MongoDB
-- Docker (for deployment)
-
-### From Docker
 ```bash
 git clone git@github.com:modularizer/NetWiz.git
 cd NetWiz
@@ -67,7 +42,9 @@ cp .env.example .env
 docker-compose up --build
 ```
 
-### From Source
+## From Source
+Want to get your dev enviroment setup?
+
 1. Install backend
 ```bash
 cd backend
@@ -119,6 +96,7 @@ npm run dev
 ```
 
 
+
 ### Troubleshooting
 
 #### **Docker Permission Error?**
@@ -140,8 +118,43 @@ If you get "Permission denied" errors when running Docker commands:
 2. If the port is intentionally in use by another project, edit `.env` to avoid conflicts
 
 
-## Project Structure
 
+## Features
+
+### Core Functionality
+1. **Netlist Upload**: Upload JSON-formatted netlist files with custom schema
+2. **Interactive Visualization**: Render netlists as graphs with components as nodes and nets as edges
+3. **Data Validation**: Validate netlist data against electrical rules and constraints
+4. **Database Storage**: Store submissions in MongoDB for persistence
+5. **User Management**: Track submissions per user
+6. **Validation Results**: Display detailed validation results with highlighted violations
+
+### Netlist Schema
+The application supports netlist files containing:
+- **Components**: List of electronic components (ICs, resistors, connectors, etc.) with their pins
+- **Nets**: Electrical connection definitions
+- **Connections**: Mapping between nets and component pins
+
+### Validation Rules
+- `Name` data validation
+  - no blank names
+  - components must have unique names
+  - nets must have unique names
+  - warning if a net has the same name as a component
+- `GND` connectivity verification
+  - there must be atleast one ground net
+  - each ground net should have atleast one connection
+  - every pin labelled with type ground must be connected to a ground net
+- Net validity
+  - every net must have at least one connection
+- Component validity
+  - warnings for pins that are disconnected
+- see `/backend/netlist/core/validation/rules/*` for more
+- More to come ...
+
+
+
+## Project Structure
 ```
 NetWiz/
 ├── backend/                           # Python backend service
@@ -161,15 +174,58 @@ NetWiz/
 │   └── Dockerfile                     # Docker build instructions for frontend image
 │
 └── README.md                          # Project overview, setup, and usage guide
-
 ```
 
-## Development
+## Code Styles
 
 ### Backend Development
-- Python FastAPI server
-- MongoDB integration
-- Netlist validation engine
+- `pydantic` + `FastAPI` + `openapi.json` + `SwaggerUI`
+  - allows us to keep code organized and typehinted, reducing devloper errors
+  - procudes a swagger API documentation page  (http://locahost:5000/docs) built for us thanks to pydantic and fastapi
+  - aids in enforcing the Netlist schema we have defined
+- `pyproject.toml` and absolute imports
+  - doing a local `pip install -e .` of our pyproject.toml enables using absolute imports throughout the repo, outside of `__init__.py` files
+    - this makes it easier to run any file from any working directory during testing
+  - `pyproject.toml` provides an easy way to install CLI tools which we define in it, like `netwiz-backend`
+  - `sync_metadata.py` keeps our requirements.txt in sync with our pyproject.toml
+- `ruff` + `pre-commit`
+  - `ruff` enforces a style-guide every time we try to commit
+    - lots of checks are purely aesthetic or for readability
+    - some checks such as for unused variables or for variables getting redefined before they are used, can be indicators of likely bugs
+    - some checks notify of recommended best practices
+  - `pre-commit` can honestly be kindof annoying, but helps prevent pushing bugs
+- `pytest` + `GitHub workflows`
+  - we have some unit tests we just run manually and other unit tests and integration tests run in workflows
+- `.env` loading from a .env helps protect secrets and also helps reduce hardcoding
+- `Docker` and `docker-compose` keep our code easily deployable
+- modularization and separation of generic vs api vs business logic
+
+```bash
+backend/
+├── netwiz_backend/           # Main package directory
+│   ├── main.py                 # FastAPI application entry point
+│   ├── config.py               # Configuration management, loading from .env
+│   ├── system/                 # System endpoints (health, root, info)
+│   ├── auth/                   # Auth/JWT endpoints and middleware
+│   ├── json_tracker/           # Standalone utility package for parsing json, entirely independent of our other logic
+│   ├── netlist/                # 🎯 Core business logic package, including the core logic and the API endpoints
+│   │   ├── core/                 # core business logic, unrelated to the actual API endpoints
+│   │   │   ├── validation/           # where we do all of our validation checks
+│   │   │   │   ├── rules/            # where we actually define our individual validation rules
+│   └── scripts/                # 🛠️ Command-line utilities
+│       ├── generate_openapi.py   # OpenAPI schema generation
+│       ├── sync_metadata.py      # Metadata synchronization
+│       ├── check_metadata.py     # Metadata validation wrapper
+│       ├── health_check.py       # API health monitoring
+│       └── test_api.py           # API testing suite
+├── pyproject.toml            # Package configuration (auto-synced from __init__.py)
+├── requirements.txt          # All dependencies (production + development)
+├── .env.example              # Environment template
+├── tests/                    # Test suite
+│   ├── unit/                   # Unit tests
+│   ├── integration/            # Integration tests
+│   └── conftest.py             # Test fixtures
+```
 
 ### Frontend Development
 - React components
@@ -177,8 +233,6 @@ NetWiz/
 - File upload interface
 - Validation results display
 
-## API Endpoints
-see `backend/openapi.json`, also hosted by the api at `/docs`, e.g. http://locahost:5000/docs
 
 ## License
 We use the Unlicense, meaning you are free to use this code as you wish
