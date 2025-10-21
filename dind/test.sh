@@ -60,10 +60,10 @@ LOGS_PID=$!
 trap 'kill "$LOGS_PID" 2>/dev/null || true' EXIT
 
 # now your echos will still show
-echo "⏳ Waiting 20 seconds for container to fully start..."
-sleep 10
-echo "10 more seconds..."
-sleep 10
+echo "⏳ Waiting 40 seconds for container to fully start..."
+sleep 20
+echo "20 more seconds..."
+sleep 20
 
 
 echo "----------------------------------------"

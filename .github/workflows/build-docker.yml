@@ -65,24 +65,13 @@ jobs:
     - name: Run build script
       run: |
         ./dind/build.sh ${{ steps.git.outputs.branch }}
+        ./dind/test.sh ${{ steps.git.outputs.branch }}
 
     - name: Push containers
       if: github.event_name != 'pull_request'
       run: |
         ./dind/push.sh ${{ steps.git.outputs.branch }} ${{ env.REGISTRY }}/${{ env.USER }}
 
-    - name: Test netwiz container
-      run: |
-        # Test the locally built image instead of pulling from registry
-        LOCAL_IMAGE="${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}"
-        echo "Testing locally built image: $LOCAL_IMAGE"
-
-        # Run integration tests on the locally built image
-        ./dind/test.sh $LOCAL_IMAGE
-
-    - name: Promote to latest
-      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-      run: |
         # Promote all images to latest
         for image in ${{ env.BACKEND_IMAGE }} ${{ env.FRONTEND_IMAGE }} ${{ env.NGINX_IMAGE }} ${{ env.NETWIZ_IMAGE }}; do
           MAIN_TAG="${{ env.REGISTRY }}/${{ env.USER }}/$image:main"
