@@ -23,10 +23,15 @@ There are an abundance of ways to run Netwiz. Here are just a few...
 ## Oneliner (No Source Code Required)
 Want to run NetWiz without cloning the repository? Just download and run the docker-compose, which will pull the appropriate docker images from the GitHub Package Registry
 
-1. Make sure that you have `docker`,`docker-compose`, and `curl` installed and your current user has access to run them
-```bash
-docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 -v ./data:/data ghcr.io/modularizer/netwiz:latest
-```
+1. make sure you have `docker` installed and your current user has access to run it
+
+2. To run with default settings and secrets, use the following
+    ```bash
+    docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 ghcr.io/modularizer/netwiz:latest
+    ```
+
+3. Allow about 30s to startup, then go to http://localhost:8000
+
 
 
 ## Running with Docker
@@ -64,9 +69,6 @@ pre-commit install
 ```bash
 # Install dependencies
 npm install
-
-# Generate TypeScript types from OpenAPI schema
-npm run generate-api-types
 ```
 
 3. Install MongoDb
@@ -284,6 +286,7 @@ frontend/src/
 - **Docker Containerization** for containerized deployments
 - **Environment-Aware** configuration for different deployment targets
 - **Base Path Detection** for subdirectory deployments
+
 
 
 ## License
