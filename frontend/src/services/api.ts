@@ -50,11 +50,17 @@ export interface ApiError {
 }
 
 // Configuration
-const DEFAULT_API_URL = 'http://localhost:5000'
+const DEFAULT_API_URL = '/api'  // Use relative path for nginx proxy
 const API_URL_STORAGE_KEY = 'netwiz-api-url'
 
 const getApiBaseUrl = () => {
-  // Check localStorage for cached API URL first
+  // Check for environment variable first (for Docker/production)
+  const envApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL
+  if (envApiUrl) {
+    return envApiUrl
+  }
+
+  // Check localStorage for cached API URL
   const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
   if (cachedUrl) {
     return cachedUrl
