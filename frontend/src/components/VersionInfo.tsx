@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Info, X, GitBranch, Calendar, Hash, Tag } from 'lucide-react'
+import { DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
 
 interface FrontendVersion {
   commit_hash: string
@@ -74,9 +75,10 @@ const VersionInfo: React.FC<VersionInfoProps> = ({ className = '' }) => {
     setError(null)
 
     try {
-      // Get the API base URL from localStorage or use default
-      const cachedUrl = localStorage.getItem('netwiz_api_url')
-      const apiUrl = cachedUrl || 'http://localhost:5000'
+      // Get the API base URL using the same logic as the rest of the app
+      const envApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL
+      const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
+      const apiUrl = envApiUrl || cachedUrl || DEFAULT_API_URL
 
       const response = await fetch(`${apiUrl}/`, {
         method: 'GET',
