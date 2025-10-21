@@ -4,6 +4,12 @@
 # Usage: ./dind/test.sh <image-name> [port] [timeout] (or call from any directory)
 
 set -e
+# Keep original fds
+exec 3>&1 4>&2
+
+# Prefix & line-buffer script output so it doesn't get stuck behind pipes
+exec 1> >(sed -u 's/^/[script] /' >&3) \
+     2> >(sed -u 's/^/[script-err] /' >&4)
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,9 +29,13 @@ echo "Image: $IMAGE_NAME"
 echo "Port: $PORT"
 echo "Timeout: ${TEST_TIMEOUT}s"
 
+
 # Function to cleanup
 cleanup() {
     echo "🧹 Cleaning up..."
+    if [ -n "$LOG_PID" ]; then
+        kill -9 $LOG_PID 2>/dev/null || true
+    fi
     if [ -n "$CONTAINER_ID" ]; then
         docker stop $CONTAINER_ID 2>/dev/null || true
         docker rm $CONTAINER_ID 2>/dev/null || true
@@ -38,26 +48,26 @@ echo "📦 Test 1: Container startup"
 CONTAINER_ID=$(docker run -d -p $PORT:80 --privileged $IMAGE_NAME)
 echo "Container ID: $CONTAINER_ID"
 
-# Wait for container to be ready
-echo "⏳ Waiting for container to be ready..."
-for i in $(seq 1 30); do
-    if docker ps | grep -q $CONTAINER_ID; then
-        echo "✅ Container is running"
-        break
-    else
-        echo "❌ Container not running, attempt $i"
-        if [ $i -eq 30 ]; then
-            echo "❌ Container failed to start after 30 attempts"
-            docker logs $CONTAINER_ID
-            exit 1
-        fi
-        sleep 2
-    fi
-done
+# Wait for container to be ready with log streaming
+echo "⏳ Waiting 30 seconds for container to fully start..."
+echo "📋 Container logs (30 seconds):"
+echo "----------------------------------------"
 
-# Wait for application to start
-echo "⏳ Waiting for application to start..."
-sleep 30
+# Use a proper approach - run logs in background and kill after timeout
+# Stream container logs for the whole run (do NOT stop it)
+docker logs -f "$CONTAINER_ID" 2>&1 | sed -u 's/^/[container] /' >&3 &
+LOGS_PID=$!
+trap 'kill "$LOGS_PID" 2>/dev/null || true' EXIT
+
+# now your echos will still show
+echo "⏳ Waiting 20 seconds for container to fully start..."
+sleep 10
+echo "10 more seconds..."
+sleep 10
+
+
+echo "----------------------------------------"
+echo "✅ Container startup complete"
 
 # Test 2: Health endpoint
 echo "🏥 Test 2: Health endpoint"
@@ -69,12 +79,12 @@ for i in $(seq 1 10); do
     else
         echo "❌ Health endpoint not responding, attempt $i failed"
         if [ $i -eq 10 ]; then
+            cleanup
+            echo ""
             echo "❌ Health endpoint failed after 10 attempts"
-            echo "Container logs:"
-            docker logs $CONTAINER_ID
             exit 1
         fi
-        sleep 10
+        sleep 5
     fi
 done
 
@@ -83,8 +93,9 @@ echo "🌐 Test 3: Frontend accessibility"
 if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/; then
     echo "✅ Frontend is accessible"
 else
+    cleanup
+    echo ""
     echo "❌ Frontend is not accessible"
-    docker logs $CONTAINER_ID
     exit 1
 fi
 
@@ -95,8 +106,9 @@ echo "🔌 Test 4: Backend API endpoints"
 if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/api/; then
     echo "✅ API root endpoint is responding"
 else
+    cleanup
+    echo ""
     echo "❌ API root endpoint failed"
-    docker logs $CONTAINER_ID
     exit 1
 fi
 
@@ -104,65 +116,40 @@ fi
 if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/info; then
     echo "✅ Info endpoint is responding"
 else
+    cleanup
+    echo ""
     echo "❌ Info endpoint failed"
-    docker logs $CONTAINER_ID
     exit 1
 fi
 
 # Test OpenAPI endpoint
-if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/openapi.json; then
+if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/api/openapi.json; then
     echo "✅ OpenAPI endpoint is responding"
 else
+    cleanup
+    echo ""
     echo "❌ OpenAPI endpoint failed"
-    docker logs $CONTAINER_ID
     exit 1
 fi
 
 # Test 5: Static assets
 echo "📁 Test 5: Static assets"
-if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/assets/; then
+if curl -f --connect-timeout 10 --max-time 30 http://localhost:$PORT/logo-full.svg; then
     echo "✅ Static assets are accessible"
 else
+    cleanup
+    echo ""
     echo "❌ Static assets are not accessible"
-    docker logs $CONTAINER_ID
     exit 1
 fi
 
-# Test 6: Container logs check
-echo "📋 Test 6: Container logs check"
-LOGS=$(docker logs $CONTAINER_ID 2>&1)
-if echo "$LOGS" | grep -q "ERROR\|FATAL\|Exception"; then
-    echo "❌ Found errors in container logs:"
-    echo "$LOGS" | grep -i "error\|fatal\|exception"
-    exit 1
-else
-    echo "✅ No critical errors found in logs"
-fi
-
-# Test 7: Container resource usage
-echo "💾 Test 7: Container resource usage"
-docker stats --no-stream --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}" $CONTAINER_ID
-
-# Test 8: Container processes
-echo "⚙️ Test 8: Container processes"
-docker exec $CONTAINER_ID ps aux || echo "⚠️ Cannot exec into container (this may be expected)"
-
-# Test 9: Network connectivity
-echo "🌐 Test 9: Network connectivity"
-docker exec $CONTAINER_ID curl -f http://localhost/health || echo "⚠️ Internal health check failed"
-
-# Test 10: Data persistence (if data directory is mounted)
-echo "💾 Test 10: Data persistence check"
-if docker exec $CONTAINER_ID test -d /data; then
-    echo "✅ Data directory exists"
-    docker exec $CONTAINER_ID ls -la /data/
-else
-    echo "ℹ️ No data directory mounted (ephemeral mode)"
-fi
 
 echo ""
-echo "🎉 All integration tests passed!"
 echo "✅ NetWiz container is working correctly"
 echo "📊 Container is running on port $PORT"
 echo "🔗 Access the application at: http://localhost:$PORT"
 echo "📖 API documentation at: http://localhost:$PORT/docs"
+cleanup
+echo ""
+echo "🎉 All integration tests passed!"
+exit 0

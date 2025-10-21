@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     BLANK_NET_NAME,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,14 +27,14 @@ class BlankNetNameRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for blank or empty net names."""
         for i, net in enumerate(netlist.nets):
             if not net.name or not net.name.strip():
-                error = ValidationError(
+                error = NetlistValidationError(
                     error_type=BLANK_NET_NAME,
                     message=f"Net names cannot be blank (Net #{i})",
                     net_id=net.name,

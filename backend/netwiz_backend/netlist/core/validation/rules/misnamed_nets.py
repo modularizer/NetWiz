@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     MISNAMED_NETS,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,8 +27,8 @@ class MisnamedNetsRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check that net types are consistent with their names."""
@@ -46,7 +46,7 @@ class MisnamedNetsRule(RuleCheckABC):
 
             if net_name in name_to_type and net_type != name_to_type[net_name]:
                 warnings.append(
-                    ValidationError(
+                    NetlistValidationError(
                         error_type=MISNAMED_NETS,
                         message=f"Net '{net.name}' has type '{net_type}', are you sure?",
                         net_id=net.name,

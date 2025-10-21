@@ -12,7 +12,7 @@ from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleChec
 from netwiz_backend.netlist.core.validation.types import (
     INSUFFICIENT_GND_CONNECTIONS,
     MISSING_GROUND,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -31,8 +31,8 @@ class GroundConnectivityRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for ground nets and their connectivity."""
@@ -54,7 +54,7 @@ class GroundConnectivityRule(RuleCheckABC):
 
         if not all_gnd_nets:
             errors.append(
-                ValidationError(
+                NetlistValidationError(
                     error_type=MISSING_GROUND,
                     message="No ground nets found",
                     severity="error",
@@ -65,7 +65,7 @@ class GroundConnectivityRule(RuleCheckABC):
         for i, net in all_gnd_nets:
             if len(net.connections) < 2:
                 warnings.append(
-                    ValidationError(
+                    NetlistValidationError(
                         error_type=INSUFFICIENT_GND_CONNECTIONS,
                         message=f"Ground net '{net.name}' has only {len(net.connections)} connection(s)",
                         net_id=net.name,

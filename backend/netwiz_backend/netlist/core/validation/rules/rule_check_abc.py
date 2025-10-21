@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 from netwiz_backend.json_tracker.types import LocationInfo
 from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.types import (
-    ValidationError,
+    NetlistValidationError,
     ValidationErrorType,
     ValidationResult,
 )
@@ -53,8 +53,8 @@ class RuleCheckABC(ABC):
         self,
         netlist: Netlist,
         validation_rules_applied: list[ValidationErrorType] | None = None,
-        errors: list[ValidationError] | None = None,
-        warnings: list[ValidationError] | None = None,
+        errors: list[NetlistValidationError] | None = None,
+        warnings: list[NetlistValidationError] | None = None,
         get_location: Callable[[str], LocationInfo | None] | None = None,
     ) -> ValidationResult:
         """
@@ -67,8 +67,8 @@ class RuleCheckABC(ABC):
         Args:
             netlist: The netlist to validate
             validation_rules_applied: Optional list to append this rule's error_type to (for legacy compatibility)
-            errors: Optional list to append error ValidationError objects to (for legacy compatibility)
-            warnings: Optional list to append warning ValidationError objects to (for legacy compatibility)
+            errors: Optional list to append error NetlistValidationError objects to (for legacy compatibility)
+            warnings: Optional list to append warning NetlistValidationError objects to (for legacy compatibility)
             get_location: Optional function to get location info for error positioning
 
         Returns:
@@ -101,8 +101,8 @@ class RuleCheckABC(ABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         pass

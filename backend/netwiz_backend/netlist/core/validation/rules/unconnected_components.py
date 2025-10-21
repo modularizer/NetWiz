@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     UNCONNECTED_COMPONENT,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,8 +27,8 @@ class UnconnectedComponentsRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for components with unconnected pins."""
@@ -47,7 +47,7 @@ class UnconnectedComponentsRule(RuleCheckABC):
 
             if unconnected_pins:
                 warnings.append(
-                    ValidationError(
+                    NetlistValidationError(
                         error_type=UNCONNECTED_COMPONENT,
                         message=f"Component '{component.name}' has unconnected pins: {', '.join(unconnected_pins)}",
                         component_id=component.name,

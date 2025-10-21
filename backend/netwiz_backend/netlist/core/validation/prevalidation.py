@@ -6,7 +6,7 @@ from netwiz_backend.netlist.core.validation.types import (
     INVALID_FORMAT,
     INVALID_JSON,
     MISSING_FIELD,
-    ValidationError,
+    NetlistValidationError,
     ValidationResult,
 )
 
@@ -50,7 +50,7 @@ def check_is_valid_json(
         return None, ValidationResult(
             is_valid=False,
             errors=[
-                ValidationError(
+                NetlistValidationError(
                     message=f"JSON syntax error: {e.msg}",
                     error_type=INVALID_JSON,
                     location=e.error_loc,
@@ -63,7 +63,7 @@ def check_is_valid_json(
         return None, ValidationResult(
             is_valid=False,
             errors=[
-                ValidationError(
+                NetlistValidationError(
                     message=f"Unexpected error parsing JSON: {e!s}",
                     error_type=INVALID_JSON,
                     location=None,
@@ -77,7 +77,7 @@ def check_is_valid_json(
         return None, ValidationResult(
             is_valid=False,
             errors=[
-                ValidationError(
+                NetlistValidationError(
                     message="Request data must be an object",
                     error_type=INVALID_JSON,
                     location=None,
@@ -97,7 +97,7 @@ def check_basic_format(
     for f in ["components", "nets"]:
         if f not in tracked_json:
             missing_field_validation_errors.append(
-                ValidationError(
+                NetlistValidationError(
                     message=f"Missing required field: {f}",
                     error_type=MISSING_FIELD,
                     location=tracked_json.location,
@@ -126,7 +126,7 @@ def check_basic_format(
 
 def localize_pydantic_error(
     e: pydantic_core.ValidationError, tracked_json: TrackedJson | None
-) -> list[ValidationError]:
+) -> list[NetlistValidationError]:
     validation_errors = []
     for pydantic_error in e.errors():
         msg = pydantic_error["msg"]
@@ -154,7 +154,7 @@ def localize_pydantic_error(
             print(f"No location found for path {path}")
 
         validation_errors.append(
-            ValidationError(
+            NetlistValidationError(
                 message=msg,
                 error_type=INVALID_FORMAT,
                 location=location_info,

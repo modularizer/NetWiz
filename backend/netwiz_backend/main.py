@@ -27,7 +27,6 @@ class NetwizApp:
         self._register_controllers()
         self._register_lifecycle()
         self._register_exception_handlers()
-        self._register_openapi_endpoint()
 
     @staticmethod
     def _create_app() -> FastAPI:
@@ -100,9 +99,6 @@ class NetwizApp:
         # static: don’t depend on instance state
         self.app.add_exception_handler(HTTPException, NetwizApp.http_exception_handler)
         self.app.add_exception_handler(Exception, NetwizApp.general_exception_handler)
-
-    def _register_openapi_endpoint(self) -> None:
-        self.app.get("/openapi.json", tags=["system"])(self.app.openapi)
 
     # ── lifecycle (static) ─────────────────────────────────────────────────────
     @staticmethod

@@ -12,7 +12,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     DUPLICATE_NET_NAME,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -28,8 +28,8 @@ class UniqueNetNameRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for duplicate net names."""
@@ -46,7 +46,7 @@ class UniqueNetNameRule(RuleCheckABC):
                     net_location = get_location(f"$.nets.{i}.name")
                     break
 
-            error = ValidationError(
+            error = NetlistValidationError(
                 error_type=DUPLICATE_NET_NAME,
                 message=f"Net names must be unique ('{name}')",
                 net_id=name,

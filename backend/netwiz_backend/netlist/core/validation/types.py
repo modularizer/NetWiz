@@ -95,11 +95,11 @@ UNCONNECTED_COMPONENT = ValidationErrorType(
 )
 
 
-class ValidationError(BaseModel):
+class NetlistValidationError(BaseModel):
     """
     Represents a validation error or warning.
 
-    ValidationError captures detailed information about issues found during
+    NetlistValidationError captures detailed information about issues found during
     netlist validation. Each error includes the type, message, location,
     and severity level to help designers understand and fix problems.
 
@@ -113,7 +113,7 @@ class ValidationError(BaseModel):
 
     Example:
         ```python
-        error = ValidationError(
+        error = NetlistValidationError(
             error_type="duplicate_component_id",
             message="Component IDs must be unique",
             component_id="U1",
@@ -161,14 +161,14 @@ class ValidationResult(BaseModel):
         result = ValidationResult(
             is_valid=False,
             errors=[
-                ValidationError(
+                NetlistValidationError(
                     error_type="duplicate_component_id",
                     message="Component IDs must be unique",
                     severity="error"
                 )
             ],
             warnings=[
-                ValidationError(
+                NetlistValidationError(
                     error_type="unconnected_component",
                     message="Component is not connected to any net",
                     component_id="R5",
@@ -181,10 +181,10 @@ class ValidationResult(BaseModel):
     """
 
     is_valid: bool = Field(..., description="Whether the netlist passed validation")
-    errors: conlist(ValidationError) = Field(
+    errors: conlist(NetlistValidationError) = Field(
         default_factory=list, description="List of validation errors"
     )
-    warnings: conlist(ValidationError) = Field(
+    warnings: conlist(NetlistValidationError) = Field(
         default_factory=list, description="List of validation warnings"
     )
     validation_timestamp: datetime = Field(

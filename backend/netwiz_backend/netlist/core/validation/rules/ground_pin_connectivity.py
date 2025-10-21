@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     GROUND_PIN_NOT_CONNECTED_TO_GROUND,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,8 +27,8 @@ class GroundPinConnectivityRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check that ground pins are connected to ground nets."""
@@ -76,7 +76,7 @@ class GroundPinConnectivityRule(RuleCheckABC):
 
             if not connected_to_ground:
                 errors.append(
-                    ValidationError(
+                    NetlistValidationError(
                         error_type=GROUND_PIN_NOT_CONNECTED_TO_GROUND,
                         message=f"Ground pin {component_name}.{pin_number} is not connected to a ground net",
                         component_id=component_name,

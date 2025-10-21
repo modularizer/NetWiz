@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     ORPHANED_NET,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,15 +27,15 @@ class OrphanedNetsRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for orphaned nets."""
         for i, net in enumerate(netlist.nets):
             if len(net.connections) == 0:
                 errors.append(
-                    ValidationError(
+                    NetlistValidationError(
                         error_type=ORPHANED_NET,
                         message=f"Net '{net.name}' is not connected to any components",
                         net_id=net.name,

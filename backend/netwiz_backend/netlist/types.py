@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 from netwiz_backend.netlist.core.validation.types import (
-    ValidationError,
+    NetlistValidationError,
     ValidationErrorType,
     ValidationResult,
 )
@@ -15,17 +15,17 @@ class ValidationHTTPError(HTTPException):
     objects and raising HTTP exceptions with validation error details.
 
     The validation_errors list is automatically separated into errors and warnings
-    based on the severity field of each ValidationError.
+    based on the severity field of each NetlistValidationError.
 
     Args:
-        validation_errors: List of ValidationError objects (auto-separated by severity)
+        validation_errors: List of NetlistValidationError objects (auto-separated by severity)
         validation_rules_applied: Optional list of applied ValidationErrorType rules
         status_code: HTTP status code (default: 422)
     """
 
     def __init__(
         self,
-        validation_errors: list[ValidationError],
+        validation_errors: list[NetlistValidationError],
         validation_rules_applied: list[ValidationErrorType] | None = None,
         status_code: int = 422,
     ):

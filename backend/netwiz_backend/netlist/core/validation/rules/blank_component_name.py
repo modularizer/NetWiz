@@ -11,7 +11,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     BLANK_COMPONENT_NAME,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -27,14 +27,14 @@ class BlankComponentNameRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for blank or empty component names."""
         for i, component in enumerate(netlist.components):
             if not component.name or not component.name.strip():
-                error = ValidationError(
+                error = NetlistValidationError(
                     error_type=BLANK_COMPONENT_NAME,
                     message=f"Component names cannot be blank (Component #{i})",
                     component_id=component.name,

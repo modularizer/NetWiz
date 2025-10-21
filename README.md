@@ -30,7 +30,7 @@ Want to run NetWiz without cloning the repository? Just download and run the doc
     docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 ghcr.io/modularizer/netwiz:latest
     ```
 
-3. Allow about 30s to startup, then go to http://localhost:8000
+3. Allow about 20s to startup after the image is downloaded, then go to http://localhost:8000
 
 
 

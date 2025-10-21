@@ -12,7 +12,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     DUPLICATE_COMPONENT_NAME,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -28,8 +28,8 @@ class UniqueComponentNameRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for duplicate component names."""
@@ -46,7 +46,7 @@ class UniqueComponentNameRule(RuleCheckABC):
                     component_location = get_location(f"$.components.{i}.name")
                     break
 
-            error = ValidationError(
+            error = NetlistValidationError(
                 error_type=DUPLICATE_COMPONENT_NAME,
                 message=f"Component names must be unique ('{name}')",
                 component_id=name,

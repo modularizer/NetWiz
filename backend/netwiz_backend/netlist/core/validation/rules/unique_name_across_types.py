@@ -12,7 +12,7 @@ from netwiz_backend.netlist.core.models import Netlist
 from netwiz_backend.netlist.core.validation.rules.rule_check_abc import RuleCheckABC
 from netwiz_backend.netlist.core.validation.types import (
     DUPLICATE_NAME,
-    ValidationError,
+    NetlistValidationError,
 )
 
 
@@ -28,8 +28,8 @@ class UniqueNameAcrossTypesRule(RuleCheckABC):
     def _check(
         self,
         netlist: Netlist,
-        errors: list[ValidationError],
-        warnings: list[ValidationError],
+        errors: list[NetlistValidationError],
+        warnings: list[NetlistValidationError],
         get_location: Callable[[str], LocationInfo | None],
     ) -> None:
         """Check for names shared between components and nets."""
@@ -45,7 +45,7 @@ class UniqueNameAcrossTypesRule(RuleCheckABC):
                     net_location = get_location(f"$.nets.{i}.name")
                     break
 
-            warning = ValidationError(
+            warning = NetlistValidationError(
                 error_type=DUPLICATE_NAME,
                 message=f"Component and Net share a name ('{name}')",
                 severity="warning",
