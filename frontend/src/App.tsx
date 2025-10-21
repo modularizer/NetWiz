@@ -62,9 +62,10 @@ function App() {
 
   // Health check function
   const performHealthCheck = useCallback(async () => {
-    // Use cached API URL from localStorage, fallback to default
+    // Use environment variable first, then cached API URL, then default
+    const envApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL
     const cachedUrl = localStorage.getItem(API_URL_STORAGE_KEY)
-    const apiUrl = cachedUrl || DEFAULT_API_URL
+    const apiUrl = envApiUrl || cachedUrl || DEFAULT_API_URL
 
     try {
       console.log('App: Performing health check at:', `${apiUrl}/`)

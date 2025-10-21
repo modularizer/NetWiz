@@ -1,0 +1,104 @@
+name: Build and Push Docker Containers
+
+on:
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  USER: modularizer
+  BACKEND_IMAGE: netwiz-backend
+  FRONTEND_IMAGE: netwiz-frontend
+  NGINX_IMAGE: netwiz-nginx
+  NETWIZ_IMAGE: netwiz
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.BACKEND_IMAGE }}
+          ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.FRONTEND_IMAGE }}
+          ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NGINX_IMAGE }}
+          ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NETWIZ_IMAGE }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+
+    - name: Get git metadata
+      id: git
+      run: |
+        echo "commit_hash=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+        echo "commit_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "branch=$(git rev-parse --abbrev-ref HEAD)" >> $GITHUB_OUTPUT
+        echo "tag=$(git describe --tags --exact-match 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
+        echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+        echo "build_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
+        echo "build_sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+
+    - name: Run build script
+      run: |
+        ./dind/build.sh ${{ steps.git.outputs.branch }}
+
+    - name: Push containers
+      if: github.event_name != 'pull_request'
+      run: |
+        ./dind/push.sh ${{ steps.git.outputs.branch }} ${{ env.REGISTRY }}/${{ env.USER }}
+
+    - name: Test netwiz container
+      if: github.event_name != 'pull_request'
+      run: |
+        # Pull the netwiz container
+        docker pull ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}
+
+        # Run integration tests
+        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}
+
+    - name: Promote to latest
+      if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+      run: |
+        # Promote all images to latest
+        for image in ${{ env.BACKEND_IMAGE }} ${{ env.FRONTEND_IMAGE }} ${{ env.NGINX_IMAGE }} ${{ env.NETWIZ_IMAGE }}; do
+          MAIN_TAG="${{ env.REGISTRY }}/${{ env.USER }}/$image:main"
+          LATEST_TAG="${{ env.REGISTRY }}/${{ env.USER }}/$image:latest"
+
+          echo "Promoting $MAIN_TAG to $LATEST_TAG"
+
+          # Pull the main branch image
+          docker pull $MAIN_TAG
+
+          # Tag as latest
+          docker tag $MAIN_TAG $LATEST_TAG
+
+          # Push the latest tag
+          docker push $LATEST_TAG
+
+          echo "✅ Successfully promoted $image to latest tag"
+        done

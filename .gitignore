@@ -6,7 +6,7 @@
 mongodb/
 mongodb-init/
 frontend/public/version.json
-
+*.tar
 # Python
 __pycache__/
 *.py[cod]

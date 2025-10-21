@@ -1,0 +1,32 @@
+# Ignore data directories that might not exist or cause build context issues
+data/
+mongodb/
+mongodb-data/
+.mongodb
+
+# Ignore development files
+node_modules/
+.git/
+.gitignore
+*.log
+*.tmp
+
+# Ignore build artifacts
+build/
+dist/
+coverage/
+
+# Ignore environment files
+.env
+.env.local
+.env.*.local
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

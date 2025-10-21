@@ -89,7 +89,7 @@ sudo systemctl status mongod
 
 ```bash
 # Copy environment template
-cp ..env.example .env
+cp env.example .env
 
 # Edit configuration (optional)
 nano .env

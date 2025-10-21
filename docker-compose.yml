@@ -46,8 +46,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        - ENVIRONMENT=${ENVIRONMENT:-production}
     container_name: netwiz-frontend
     restart: "no"
     ports:
@@ -55,6 +53,8 @@ services:
     environment:
       - NODE_ENV=${ENVIRONMENT:-production}
       - PORT=${FRONTEND_PORT:-3000}
+      - VITE_API_BASE_URL=/api
+      - REACT_APP_API_BASE_URL=/api
     depends_on:
       backend:
         condition: service_healthy

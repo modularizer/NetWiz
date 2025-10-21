@@ -25,10 +25,7 @@ Want to run NetWiz without cloning the repository? Just download and run the doc
 
 1. Make sure that you have `docker`,`docker-compose`, and `curl` installed and your current user has access to run them
 ```bash
-COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) &&
-curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.local.yml -o "$f" &&
-trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT &&
-docker-compose -p netwiz -f "$f" up
+docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 -v ./data:/data ghcr.io/modularizer/netwiz:latest
 ```
 
 

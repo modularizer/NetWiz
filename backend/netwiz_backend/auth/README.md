@@ -259,7 +259,7 @@ class User(BaseModel):
 
 ```bash
 # Copy and modify environment variables
-cp .env.example .env
+cp env.example .env
 
 # Set your secrets
 JWT_SECRET_KEY=your-super-secret-key-here
