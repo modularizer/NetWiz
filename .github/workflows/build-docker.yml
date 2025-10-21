@@ -66,7 +66,6 @@ jobs:
       run: |
         ./dind/build.sh ${{ steps.git.outputs.branch }}
         ./dind/push.sh ${{ steps.git.outputs.branch }} ${{ env.REGISTRY }} ${{ env.USER }}
-        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/netwiz:${{ steps.git.outputs.branch }}
 
         # Promote all images to latest
         for image in ${{ env.BACKEND_IMAGE }} ${{ env.FRONTEND_IMAGE }} ${{ env.NGINX_IMAGE }} ${{ env.NETWIZ_IMAGE }}; do
@@ -86,3 +85,5 @@ jobs:
 
           echo "✅ Successfully promoted $image to latest tag"
         done
+
+        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/netwiz:latest
