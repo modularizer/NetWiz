@@ -24,7 +24,9 @@ There are an abundance of ways to run Netwiz. Here are just a few...
 Want to run NetWiz without cloning the repository? Just download and run the docker-compose, which will pull the appropriate docker images from the GitHub Package Registry
 
 1. make sure you have `docker` installed and your current user has access to run it
-
+    ```bash
+   docker --version
+   ```
 2. To run with default settings and secrets, use the following
     ```bash
     docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 ghcr.io/modularizer/netwiz:latest

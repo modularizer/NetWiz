@@ -65,7 +65,7 @@ jobs:
     - name: Run build script
       run: |
         ./dind/build.sh ${{ steps.git.outputs.branch }}
-        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/netwiz ${{ steps.git.outputs.branch }}
+        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/netwiz:${{ steps.git.outputs.branch }}
 
     - name: Push containers
       if: github.event_name != 'pull_request'
