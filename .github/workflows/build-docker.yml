@@ -30,7 +30,6 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Log in to Container Registry
-      if: github.event_name != 'pull_request'
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGISTRY }}
@@ -73,13 +72,13 @@ jobs:
         ./dind/push.sh ${{ steps.git.outputs.branch }} ${{ env.REGISTRY }}/${{ env.USER }}
 
     - name: Test netwiz container
-      if: github.event_name != 'pull_request'
       run: |
-        # Pull the netwiz container
-        docker pull ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}
+        # Test the locally built image instead of pulling from registry
+        LOCAL_IMAGE="${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}"
+        echo "Testing locally built image: $LOCAL_IMAGE"
 
-        # Run integration tests
-        ./dind/test.sh ${{ env.REGISTRY }}/${{ env.USER }}/${{ env.NETWIZ_IMAGE }}:${{ steps.git.outputs.branch }}
+        # Run integration tests on the locally built image
+        ./dind/test.sh $LOCAL_IMAGE
 
     - name: Promote to latest
       if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
