@@ -13,10 +13,10 @@
  */
 
 import axios, { AxiosInstance } from 'axios'
-import type { paths, components } from '@/types/api'
+// Note: We use custom types from @/types/netlist instead of generated API types
+// because the OpenAPI schema generation is incomplete (missing json_text field)
 import type {
   NetlistSubmission,
-  ValidationResponse
 } from '@/types/netlist'
 import type {
   User,
@@ -27,9 +27,8 @@ import type {
   RefreshTokenRequest
 } from '@/types/auth'
 
-// Type aliases for better readability
-type ApiPaths = paths
-type ApiComponents = components
+// Note: We use custom types instead of generated API types
+// because the OpenAPI schema generation is incomplete
 
 // Request/Response type helpers (for future use)
 // type ApiRequest<T extends keyof ApiPaths> = ApiPaths[T] extends {
@@ -95,18 +94,15 @@ class NetWizApiClient {
 
   private getAuthHeaders() {
     const token = localStorage.getItem('netwiz_access_token')
-    console.log('🔑 getAuthHeaders - Token:', token ? 'Found' : 'Not found')
-    console.log('🔑 getAuthHeaders - Token value:', token ? `${token.substring(0, 20)}...` : 'null')
     const headers = token ? { Authorization: `Bearer ${token}` } : {}
-    console.log('🔑 getAuthHeaders - Headers:', headers)
     return headers
   }
 
 
 
   // Health check
-  async getHealth(): Promise<ApiComponents['schemas']['HealthResponse']> {
-    const response = await this.client.get<ApiComponents['schemas']['HealthResponse']>('/health')
+  async getHealth(): Promise<{ status: string; timestamp: string; version: string; environment: string; mongodb?: string }> {
+    const response = await this.client.get<{ status: string; timestamp: string; version: string; environment: string; mongodb?: string }>('/health')
     return response.data
   }
 
@@ -180,37 +176,6 @@ class NetWizApiClient {
     return response.data
   }
 
-  async validateNetlist(
-    netlist: any
-  ): Promise<ValidationResponse> {
-    const response = await this.client.post<ValidationResponse>(
-      '/netlist/validate',
-      netlist, // Wrap in ValidationRequest format
-      {
-        headers: {
-          ...this.getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-    return response.data
-  }
-
-  async validateJsonText(
-    jsonText: string
-  ): Promise<ValidationResponse> {
-    const response = await this.client.post<ValidationResponse>(
-      '/netlist/validate-text',
-      { json_text: jsonText },
-      {
-        headers: {
-          ...this.getAuthHeaders(),
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-    return response.data
-  }
 
   async getNetlist(submissionId: string): Promise<NetlistSubmission> {
     const response = await this.client.get<NetlistSubmission>(
@@ -229,8 +194,8 @@ class NetWizApiClient {
     page_size?: number
     user_id?: string
     list_all?: boolean
-  }): Promise<ApiComponents['schemas']['NetlistListResponse']> {
-    const response = await this.client.get<ApiComponents['schemas']['NetlistListResponse']>(
+  }): Promise<{ submissions: NetlistSubmission[]; total_count: number; page: number; page_size: number }> {
+    const response = await this.client.get<{ submissions: NetlistSubmission[]; total_count: number; page: number; page_size: number }>(
       '/netlist',
       {
         params,
@@ -269,11 +234,7 @@ export const apiClient = new NetWizApiClient()
 // Export the default API URL and storage key for use in other components
 export { DEFAULT_API_URL, API_URL_STORAGE_KEY }
 
-// Export types for use in components
-export type {
-  ApiComponents,
-  ApiPaths,
-}
+// Note: We export custom types instead of generated API types
 
 // Export commonly used types
 export type {

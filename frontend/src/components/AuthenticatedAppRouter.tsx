@@ -9,7 +9,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import NetlistPage from '@/pages/NetlistPage'
-import { AuthDemoPage } from '@/pages/AuthDemoPage'
 import { SignInPage } from '@/pages/SignInPage'
 
 export function AuthenticatedAppRouter() {
@@ -37,9 +36,6 @@ export function AuthenticatedAppRouter() {
     <div className="h-screen flex flex-col">
       <Routes>
         <Route path="/" element={<NetlistPage />} />
-        <Route path="/netlist" element={<NetlistPage />} />
-        <Route path="/auth-demo" element={<AuthDemoPage />} />
-        {/* Add more routes as needed */}
       </Routes>
     </div>
   )

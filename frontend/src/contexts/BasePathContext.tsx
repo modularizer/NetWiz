@@ -36,12 +36,6 @@ export const BasePathProvider: React.FC<BasePathProviderProps> = ({ children }) 
         return '/'
       }
 
-      // Use the base path detected by the HTML script if available
-      if (window.__NETWIZ_BASE_PATH__) {
-        console.log('BasePathContext: Using pre-detected base path:', window.__NETWIZ_BASE_PATH__)
-        return window.__NETWIZ_BASE_PATH__
-      }
-
       // Fallback: detect from current URL
       const pathname = window.location.pathname
       console.log('BasePathContext: window.location.href =', window.location.href)

@@ -228,10 +228,65 @@ backend/
 ```
 
 ### Frontend Development
-- React components
-- SVG/Canvas visualization
-- File upload interface
-- Validation results display
+
+Our frontend is built with modern React and TypeScript, focusing on developer experience, maintainability, and performance.
+
+#### **Core Technologies**
+- **React 18** with TypeScript for type-safe component development
+- **Vite** for fast development builds and optimized production bundles
+- **Tailwind CSS** with custom design system for consistent, responsive UI
+- **React Query** for efficient API state management and caching
+- **React Router** with dynamic base path support for flexible deployment
+
+#### **Architecture & Design Patterns**
+- **Custom Hooks** for API operations (`useNetlistUpload`, etc.) with automatic loading states and error handling
+- **Context Providers** for global state management (`AuthContext`, `BasePathContext`)
+- **Component Composition** with reusable UI components and clear separation of concerns
+- **Type-Safe API Client** with custom TypeScript interfaces matching backend models
+- **Monaco Editor** integration for advanced JSON editing with syntax highlighting and error navigation
+
+#### **Development Workflow**
+- **ESLint** with comprehensive React, TypeScript, and React Hooks rules for code quality
+- **TypeScript** strict mode for compile-time error prevention
+- **Custom Tailwind Configuration** with project-specific color palette and design tokens
+- **PostCSS** integration for CSS processing and optimization
+- **Hot Module Replacement** for instant development feedback
+
+#### **Key Features**
+- **Split-Pane Layout** with resizable panels for JSON editor, validation results, and graph visualization
+- **Real-Time Validation** with error highlighting and navigation
+- **Interactive Graph Visualization** using D3.js for component and net relationships
+- **File Upload Interface** with drag-and-drop support and progress indicators
+- **Responsive Design** that works across desktop and mobile devices
+- **Dynamic Base Path Detection** for flexible deployment scenarios
+
+#### **Code Organization**
+```
+frontend/src/
+├── components/           # Reusable UI components
+│   ├── auth/            # Authentication components
+│   ├── netlist/         # Netlist-specific components
+│   └── layout/           # Layout and navigation components
+├── contexts/            # React Context providers
+├── hooks/               # Custom React hooks
+├── pages/               # Page-level components
+├── services/            # API client and external services
+├── types/               # TypeScript type definitions
+└── utils/               # Utility functions and helpers
+```
+
+#### **Performance Optimizations**
+- **Code Splitting** with dynamic imports for route-based chunks
+- **Tree Shaking** to eliminate unused code from production bundles
+- **CSS Optimization** with Tailwind's purging for minimal bundle size
+- **API Caching** with React Query for efficient data fetching
+- **Lazy Loading** for heavy components like the Monaco editor
+
+#### **Deployment Flexibility**
+- **Static Hosting** support for GitHub Pages and CDN deployment
+- **Docker Containerization** for containerized deployments
+- **Environment-Aware** configuration for different deployment targets
+- **Base Path Detection** for subdirectory deployments
 
 
 ## License
