@@ -124,19 +124,75 @@ jobs:
         # Test that the image can be pulled and run
         docker pull ${{ steps.meta.outputs.tags }}
 
-        # Test basic container startup
+        # Test basic container startup with more robust configuration
         CONTAINER_ID=$(docker run -d \
           -e MONGODB_URI=mongodb://test:test@localhost:27017/test \
           -e MONGODB_DATABASE=test \
           -e CORS_ORIGINS=* \
+          -e PORT=5000 \
+          -e ENVIRONMENT=production \
+          -e JWT_SECRET_KEY=test-secret-key \
+          -e JWT_REFRESH_SECRET_KEY=test-refresh-secret-key \
+          -e PASSWORD_PEPPER=test-pepper \
+          --memory=512m \
+          --cpus=1 \
           -p 5000:5000 \
           ${{ steps.meta.outputs.tags }})
 
-        # Wait for container to start
-        sleep 20
+        echo "Container ID: $CONTAINER_ID"
+        echo "Waiting for container to start..."
 
-        # Test health endpoint
-        curl -f http://localhost:5000/health || exit 1
+        # Wait for container to start with better logging
+        for i in {1..10}; do
+          echo "Attempt $i: Checking container status..."
+          if docker ps | grep -q $CONTAINER_ID; then
+            echo "✅ Container is running"
+            break
+          else
+            echo "❌ Container not running, attempt $i"
+            if [ $i -eq 10 ]; then
+              echo "❌ Container failed to start after 10 attempts"
+              echo "Container logs:"
+              docker logs $CONTAINER_ID
+              docker rm $CONTAINER_ID
+              exit 1
+            fi
+            sleep 3
+          fi
+        done
+
+        # Wait additional time for application startup
+        echo "Waiting for application to start..."
+        sleep 5
+
+        # Check container logs
+        echo "Container logs:"
+        docker logs $CONTAINER_ID
+
+        # Test health endpoint with retries
+        echo "Testing health endpoint..."
+        for i in {1..5}; do
+          echo "Health check attempt $i..."
+          if curl -f --connect-timeout 10 --max-time 30 http://localhost:5000/health; then
+            echo "✅ Health endpoint is responding"
+            break
+          else
+            echo "❌ Health endpoint not responding, attempt $i failed"
+            if [ $i -eq 5 ]; then
+              echo "❌ Health endpoint failed after 5 attempts"
+              echo "Container logs:"
+              docker logs $CONTAINER_ID
+              echo "Port binding check:"
+              docker port $CONTAINER_ID
+              echo "Process check:"
+              docker exec $CONTAINER_ID ps aux || echo "Cannot exec into container"
+              docker stop $CONTAINER_ID
+              docker rm $CONTAINER_ID
+              exit 1
+            fi
+            sleep 2
+          fi
+        done
 
         # Test root endpoint includes git metadata
         ROOT_RESPONSE=$(curl -s http://localhost:5000/)
