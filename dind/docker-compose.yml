@@ -6,13 +6,10 @@
 
 services:
   nginx:
-    # Use custom nginx image with our config
+    # Use locally tagged nginx image
     image: netwiz-nginx:latest
     container_name: netwiz-nginx
     restart: unless-stopped
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
     ports:
       - "80:80"  # Fixed port mapping inside container
     depends_on:
@@ -28,13 +25,10 @@ services:
       start_period: 10s
 
   backend:
-    # Use local build instead of pulling from registry
+    # Use locally tagged backend image
     image: netwiz-backend:latest
     container_name: netwiz-backend
     restart: unless-stopped
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
     environment:
       - ENVIRONMENT=production
       - HOST=0.0.0.0
@@ -42,6 +36,9 @@ services:
       - MONGODB_URI=mongodb://${MONGODB_USER:-admin}:${MONGODB_PASSWORD:-password}@mongodb:27017/netwiz?authSource=admin
       - MONGODB_DATABASE=netwiz
       - CORS_ORIGINS=*
+    # Optional .env file mount - automatically enabled if BACKEND_ENV_FILE is set
+    volumes:
+      - ${BACKEND_ENV_FILE:-/dev/null}:/app/.env:ro
     depends_on:
       - mongodb
     networks:
@@ -61,26 +58,20 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGODB_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD:-password}
     volumes:
-      - ${MONGODB_DATA_PATH:-/data/mongodb}:/data/db
+      - ${MONGODB_DATA_PATH:-mongodb_data}:/data/db
     networks:
       - netwiz-network
 
   frontend:
-    # Use local build instead of pulling from registry
+    # Use locally tagged frontend image
     image: netwiz-frontend:latest
     container_name: netwiz-frontend
     restart: unless-stopped
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
     environment:
       - NODE_ENV=${ENVIRONMENT:-production}
       - PORT=3000
       - VITE_API_BASE_URL=/api
       - REACT_APP_API_BASE_URL=/api
-    depends_on:
-      backend:
-        condition: service_healthy
     networks:
       - netwiz-network
 
