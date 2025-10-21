@@ -21,7 +21,12 @@ class DatabaseManager:
         """Initialize database connection"""
         if self._client is None:
             try:
-                self._client = AsyncIOMotorClient(settings.mongodb_uri)
+                self._client = AsyncIOMotorClient(
+                    settings.mongodb_uri,
+                    serverSelectionTimeoutMS=5000,  # 5 second timeout instead of 30
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=5000,
+                )
                 self._database = self._client[settings.mongodb_database]
 
                 # Actually test the connection by pinging the server
