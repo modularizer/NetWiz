@@ -205,11 +205,6 @@ const SubmissionsList: React.FC<SubmissionsListProps> = ({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-1.5 border-b border-gray-200 bg-gray-50">
-        <h3 className="text-xs font-medium text-gray-900">
-          {isAdmin ? 'All Submissions' : 'My Submissions'}
-        </h3>
-      </div>
 
       <div className="flex-1 overflow-y-auto min-h-0">
         {submissions.length === 0 && !loading ? (
