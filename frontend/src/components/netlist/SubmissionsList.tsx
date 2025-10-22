@@ -229,15 +229,21 @@ const SubmissionsList: React.FC<SubmissionsListProps> = ({
                 <div
                   key={submission.id}
                   onClick={() => handleSubmissionClick(submission.id)}
-                  className={`p-1.5 cursor-pointer hover:bg-gray-50 transition-colors ${
-                    isSelected ? 'bg-blue-50 border-l-2 border-l-blue-500' : ''
+                  className={`p-1.5 cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-blue-200 text-blue-900 border-l-2 border-l-blue-500 hover:bg-blue-300'
+                      : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="space-y-0.5">
                     {/* Filename */}
                     <div className="flex items-center space-x-1">
-                      <FileText className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
-                      <span className="text-xs font-medium text-gray-900 truncate">
+                      <FileText className={`w-2.5 h-2.5 flex-shrink-0 ${
+                        isSelected ? 'text-blue-600' : 'text-gray-400'
+                      }`} />
+                      <span className={`text-xs font-medium truncate ${
+                        isSelected ? 'text-blue-900' : 'text-gray-900'
+                      }`}>
                         {submission.filename || 'Unnamed'}
                       </span>
                     </div>
@@ -246,13 +252,19 @@ const SubmissionsList: React.FC<SubmissionsListProps> = ({
                     <div className="flex items-center justify-between">
                       {item.username && (
                         <div className="flex items-center space-x-1">
-                          <User className="w-2 h-2 text-gray-400" />
-                          <span className="text-xs text-gray-500 truncate max-w-16">
+                          <User className={`w-2 h-2 ${
+                            isSelected ? 'text-blue-600' : 'text-gray-400'
+                          }`} />
+                          <span className={`text-xs truncate max-w-16 ${
+                            isSelected ? 'text-blue-700' : 'text-gray-500'
+                          }`}>
                             {item.username}
                           </span>
                         </div>
                       )}
-                      <div className="flex items-center space-x-1 text-xs text-gray-500">
+                      <div className={`flex items-center space-x-1 text-xs ${
+                        isSelected ? 'text-blue-700' : 'text-gray-500'
+                      }`}>
                         <Clock className="w-2 h-2" />
                         <span>{formatTimestamp(submission.submission_timestamp)}</span>
                       </div>
@@ -261,20 +273,28 @@ const SubmissionsList: React.FC<SubmissionsListProps> = ({
                     {/* Status indicators */}
                     <div className="flex items-center space-x-2">
                       {errorCount > 0 && (
-                        <div className="flex items-center space-x-1 text-xs text-red-600">
+                        <div className={`flex items-center space-x-1 text-xs ${
+                          isSelected ? 'text-red-700' : 'text-red-600'
+                        }`}>
                           <AlertCircle className="w-2 h-2" />
                           <span>{errorCount}</span>
                         </div>
                       )}
                       {warningCount > 0 && (
-                        <div className="flex items-center space-x-1 text-xs text-yellow-600">
+                        <div className={`flex items-center space-x-1 text-xs ${
+                          isSelected ? 'text-yellow-700' : 'text-yellow-600'
+                        }`}>
                           <AlertTriangle className="w-2 h-2" />
                           <span>{warningCount}</span>
                         </div>
                       )}
                       {errorCount === 0 && warningCount === 0 && (
-                        <div className="flex items-center space-x-1 text-xs text-green-600">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                        <div className={`flex items-center space-x-1 text-xs ${
+                          isSelected ? 'text-green-700' : 'text-green-600'
+                        }`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${
+                            isSelected ? 'bg-green-600' : 'bg-green-500'
+                          }`}></div>
                           <span>✓</span>
                         </div>
                       )}

@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserProfile, ChangePasswordForm } from '@/components/auth'
 import VersionInfo from '@/components/VersionInfo'
+import { API_BASE_URL } from '@/services/api'
 
 interface NetWizHeaderProps {
   className?: string
@@ -32,25 +33,25 @@ export function NetWizHeader({ className = '' }: NetWizHeaderProps) {
 
   return (
     <>
-      <header className={`bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300 px-6 py-5 ${className}`}>
+      <header className={`bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-300 px-3 sm:px-6 py-3 sm:py-5 ${className}`}>
         <div className="flex items-center justify-between">
           {/* Logo, Brand, and External Links */}
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3 sm:space-x-6">
             {/* Logo and Brand */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <img
                 src={'./logo-full.svg'}
                 alt="NetWiz Logo"
-                className="h-12 w-auto"
+                className="h-8 sm:h-12 w-auto"
               />
-              <div>
+              <div className="hidden sm:block">
                 <h1 className="text-xl font-semibold text-gray-900">NetWiz</h1>
                 <p className="text-sm text-gray-500">PCB Netlist Visualizer + Validator</p>
               </div>
             </div>
 
             {/* External Links */}
-            <div className="flex items-center space-x-4">
+            <div className="hidden lg:flex items-center space-x-4">
               {/* GitHub Icon */}
               <a
                 href="https://github.com/modularizer/NetWiz"
@@ -66,7 +67,7 @@ export function NetWizHeader({ className = '' }: NetWizHeaderProps) {
 
               {/* Swagger/API Docs Icon */}
               <a
-                href="./docs"
+                href={`${API_BASE_URL}/docs`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -79,7 +80,7 @@ export function NetWizHeader({ className = '' }: NetWizHeaderProps) {
 
               {/* ReDoc Icon */}
               <a
-                href="./redoc"
+                href={`${API_BASE_URL}/redoc`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-600 hover:text-gray-900 transition-colors"
@@ -107,7 +108,7 @@ export function NetWizHeader({ className = '' }: NetWizHeaderProps) {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
-                  <span>{isAuthenticated ? user?.username : 'Profile'}</span>
+                  <span className="hidden md:inline">{isAuthenticated ? user?.username : 'Profile'}</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>

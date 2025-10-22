@@ -8,7 +8,7 @@
  * - Interactive schematic visualization
  */
 
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
@@ -30,10 +30,23 @@ const NetlistPage: React.FC = () => {
   const [netlistName, setNetlistName] = useState<string>('')
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('')
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
 
   // Custom hooks for API operations
   const { uploadNetlist, isUploading } = useNetlistUpload()
   const { user } = useAuth()
+
+  // Responsive layout detection
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 1024) // lg breakpoint
+    }
+
+    checkScreenSize()
+    window.addEventListener('resize', checkScreenSize)
+
+    return () => window.removeEventListener('resize', checkScreenSize)
+  }, [])
 
   // Navigation handler for clicking on validation errors
   const handleNavigateToError = useCallback((lineNumber: number, characterPosition: number) => {
@@ -217,7 +230,160 @@ const NetlistPage: React.FC = () => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal">
+        {isSmallScreen ? (
+          // Mobile/Tablet Layout - Vertical Stack
+          <PanelGroup direction="vertical">
+            {/* Top Panel - Submissions List */}
+            <Panel defaultSize={20} minSize={15} maxSize={30}>
+              <SubmissionsList
+                onSubmissionSelect={handleSubmissionSelect}
+                selectedSubmissionId={selectedSubmissionId}
+                isAdmin={user?.user_type === 'admin'}
+                refreshTrigger={refreshTrigger}
+              />
+            </Panel>
+
+            <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
+
+            {/* Middle Panel - JSON Editor */}
+            <Panel defaultSize={50} minSize={30}>
+              <div className="flex flex-col h-full overflow-hidden">
+                <div className="bg-white border-b border-gray-200 px-4 py-2">
+                  {/* Desktop Layout - Single Row */}
+                  <div className="hidden lg:flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                      {currentFilename && (
+                        <span className="text-xs text-gray-500">({currentFilename})</span>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={netlistName}
+                        onChange={(e) => setNetlistName(e.target.value)}
+                        placeholder="Netlist name"
+                        className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <button
+                        onClick={handleValidate}
+                        disabled={!jsonText || isUploading}
+                        className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Validate and upload netlist"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                        <span className="text-sm text-white">Validate</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mobile/Tablet Layout - Multiple Rows */}
+                  <div className="lg:hidden space-y-2">
+                    {/* Row 1: Title and Filename */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                        {currentFilename && (
+                          <span className="text-xs text-gray-500">({currentFilename})</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: Controls */}
+                    <div className="flex items-center justify-between space-x-2">
+                      <input
+                        type="text"
+                        value={netlistName}
+                        onChange={(e) => setNetlistName(e.target.value)}
+                        placeholder="Netlist name"
+                        className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      />
+                      <button
+                        onClick={handleValidate}
+                        disabled={!jsonText || isUploading}
+                        className="flex items-center space-x-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Validate and upload netlist"
+                      >
+                        {isUploading ? (
+                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        )}
+                        <span className="text-xs text-white">Validate</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex-1 min-h-0">
+                  <JsonEditor
+                    value={jsonText}
+                    onChange={handleJsonTextChange}
+                    validationResult={validationResult}
+                    onNavigateToError={handleNavigateToError}
+                  />
+                </div>
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
+
+            {/* Bottom Panel - Validation and Graph */}
+            <Panel defaultSize={30} minSize={20}>
+              <PanelGroup direction="vertical">
+                {/* Validation Panel */}
+                <Panel defaultSize={60} minSize={40}>
+                  <div className="flex flex-col h-full overflow-hidden">
+                    <div className="bg-white border-b border-gray-200 px-4 py-2">
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-sm font-medium text-gray-900">Validation</h2>
+                        {validationResult && (
+                          <div className="flex items-center space-x-1">
+                            {validationResult.is_valid ? (
+                              <CheckCircle className="w-4 h-4 text-success-500" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-error-500" />
+                            )}
+                            <span className={`text-xs font-medium ${
+                              validationResult.is_valid ? 'text-success-600' : 'text-error-600'
+                            }`}>
+                              {validationResult.is_valid ? 'Valid' : 'Invalid'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      <ValidationPanel
+                        validationResult={validationResult}
+                        onNavigateToError={handleNavigateToError}
+                      />
+                    </div>
+                  </div>
+                </Panel>
+
+                <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
+
+                {/* Graph Visualization */}
+                <Panel defaultSize={40} minSize={30}>
+                  <div className="flex flex-col h-full overflow-hidden">
+                    <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
+                      <h2 className="text-sm font-medium text-gray-900">Schematic</h2>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      <GraphVisualization netlist={netlist} validationResult={validationResult} />
+                    </div>
+                  </div>
+                </Panel>
+              </PanelGroup>
+            </Panel>
+          </PanelGroup>
+        ) : (
+          // Desktop Layout - Horizontal Columns
+          <PanelGroup direction="horizontal">
           {/* Left Panel - Submissions List */}
           <Panel defaultSize={15} minSize={12}>
             <SubmissionsList
@@ -237,7 +403,8 @@ const NetlistPage: React.FC = () => {
               <Panel defaultSize={60} minSize={30}>
                 <div className="flex flex-col h-full overflow-hidden">
                   <div className="bg-white border-b border-gray-200 px-4 py-2">
-                    <div className="flex items-center justify-between">
+                    {/* Desktop Layout - Single Row */}
+                    <div className="hidden xl:flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
                         {currentFilename && (
@@ -293,14 +460,167 @@ const NetlistPage: React.FC = () => {
                         <button
                           onClick={handleValidate}
                           disabled={!jsonText || isUploading}
-                          className="p-1 rounded hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Validate and upload netlist"
                         >
                           {isUploading ? (
-                            <Loader2 className="w-4 h-4 text-gray-500 animate-spin" />
+                            <Loader2 className="w-4 h-4 text-white animate-spin" />
                           ) : (
-                            <CheckCircle className="w-4 h-4 text-gray-500" />
+                            <CheckCircle className="w-4 h-4 text-white" />
                           )}
+                          <span className="text-sm text-white">Validate</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Tablet Layout - Two Rows */}
+                    <div className="hidden lg:block xl:hidden space-y-2">
+                      {/* Row 1: Title and Filename */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                          {currentFilename && (
+                            <span className="text-xs text-gray-500">({currentFilename})</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: Controls */}
+                      <div className="flex items-center justify-between space-x-2">
+                        <input
+                          type="text"
+                          value={netlistName}
+                          onChange={(e) => setNetlistName(e.target.value)}
+                          placeholder="Netlist name"
+                          className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                        <select
+                          value={selectedExample}
+                          onChange={(e) => {
+                            setSelectedExample(e.target.value)
+                            const example = testExamples.find(ex => ex.id === e.target.value)
+                            if (example) {
+                              handleTestExampleSelect(example)
+                            }
+                          }}
+                          className="text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Load example...</option>
+                          {testExamples.map((example) => (
+                            <option key={example.id} value={example.id}>
+                              {example.name} ({example.category})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              handleFileUpload(file)
+                            }
+                          }}
+                          className="hidden"
+                          id="file-upload-lg"
+                        />
+                        <label
+                          htmlFor="file-upload-lg"
+                          className="cursor-pointer p-1 rounded hover:bg-gray-100 transition-colors"
+                          title="Upload JSON file"
+                        >
+                          <Upload className="w-4 h-4 text-gray-500" />
+                        </label>
+                        <button
+                          onClick={handleValidate}
+                          disabled={!jsonText || isUploading}
+                          className="flex items-center space-x-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Validate and upload netlist"
+                        >
+                          {isUploading ? (
+                            <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          )}
+                          <span className="text-xs text-white">Validate</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mobile Layout - Multiple Rows */}
+                    <div className="lg:hidden space-y-2">
+                      {/* Row 1: Title and Filename */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
+                          {currentFilename && (
+                            <span className="text-xs text-gray-500">({currentFilename})</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Row 2: Netlist Name */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={netlistName}
+                          onChange={(e) => setNetlistName(e.target.value)}
+                          placeholder="Netlist name"
+                          className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+
+                      {/* Row 3: Controls */}
+                      <div className="flex items-center justify-between space-x-2">
+                        <select
+                          value={selectedExample}
+                          onChange={(e) => {
+                            setSelectedExample(e.target.value)
+                            const example = testExamples.find(ex => ex.id === e.target.value)
+                            if (example) {
+                              handleTestExampleSelect(example)
+                            }
+                          }}
+                          className="flex-1 text-xs border border-gray-300 rounded px-2 py-1 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Load example...</option>
+                          {testExamples.map((example) => (
+                            <option key={example.id} value={example.id}>
+                              {example.name} ({example.category})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              handleFileUpload(file)
+                            }
+                          }}
+                          className="hidden"
+                          id="file-upload-mobile"
+                        />
+                        <label
+                          htmlFor="file-upload-mobile"
+                          className="cursor-pointer p-1 rounded hover:bg-gray-100 transition-colors"
+                          title="Upload JSON file"
+                        >
+                          <Upload className="w-4 h-4 text-gray-500" />
+                        </label>
+                        <button
+                          onClick={handleValidate}
+                          disabled={!jsonText || isUploading}
+                          className="flex items-center space-x-1 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Validate and upload netlist"
+                        >
+                          {isUploading ? (
+                            <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          )}
+                          <span className="text-xs text-white">Validate</span>
                         </button>
                       </div>
                     </div>
@@ -354,17 +674,18 @@ const NetlistPage: React.FC = () => {
           <PanelResizeHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
 
           {/* Right Panel - Graph Visualization */}
-          <Panel defaultSize={35} minSize={25}>
-            <div className="flex flex-col h-full">
-              <div className="bg-white border-b border-gray-200 px-4 py-2">
+          <Panel defaultSize={35} minSize={20} maxSize={50}>
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
                 <h2 className="text-sm font-medium text-gray-900">Schematic Visualization</h2>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-h-0">
                 <GraphVisualization netlist={netlist} validationResult={validationResult} />
               </div>
             </div>
           </Panel>
         </PanelGroup>
+        )}
       </div>
     </div>
   )

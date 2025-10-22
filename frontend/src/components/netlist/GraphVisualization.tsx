@@ -17,18 +17,21 @@ interface GraphVisualizationProps {
   validationResult?: ValidationResult | null
 }
 
-const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, validationResult }) => {
+const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, validationResult: _validationResult }) => {
   const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (!netlist || !svgRef.current) return
+    if (!netlist || !svgRef.current || !containerRef.current) return
+
+    // Get actual container dimensions
+    const containerRect = containerRef.current.getBoundingClientRect()
+    const width = containerRect.width || 400
+    const height = containerRect.height || 300
 
     try {
       const svg = d3.select(svgRef.current)
       svg.selectAll('*').remove() // Clear previous content
-
-      const width = 800
-      const height = 600
 
       // Set up SVG
       svg.attr('width', width).attr('height', height)
@@ -54,7 +57,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
       }
 
       // Create nodes (components) with proper D3 structure
-      const nodes = netlist.components.map(component => ({
+      const nodes = netlist.components.map((component: any) => ({
         id: component.name,
         ...component
       }))
@@ -62,10 +65,10 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
     // Create links by finding connections between components through nets
     const links: Array<{source: string, target: string, net: any}> = []
 
-    netlist.nets.forEach(net => {
+    netlist.nets.forEach((net: any) => {
       const connectedComponents = new Set<string>()
 
-      net.connections.forEach(connection => {
+      net.connections.forEach((connection: any) => {
         connectedComponents.add(connection.component)
       })
 
@@ -168,15 +171,39 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
         const svg = d3.select(svgRef.current)
         svg.selectAll('*').remove()
         svg.append('text')
-          .attr('x', 400)
-          .attr('y', 300)
+          .attr('x', width / 2)
+          .attr('y', height / 2)
           .attr('text-anchor', 'middle')
           .attr('font-size', '16px')
           .attr('fill', 'red')
           .text('Error rendering graph')
       }
     }
-  }, [netlist, validationResult])
+  }, [netlist])
+
+  // Add resize observer for responsive behavior
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Trigger re-render when container size changes
+      if (netlist && svgRef.current) {
+        // Force a re-render by updating the SVG dimensions
+        const containerRect = containerRef.current?.getBoundingClientRect()
+        if (containerRect && svgRef.current) {
+          const svg = d3.select(svgRef.current)
+          svg.attr('width', containerRect.width)
+          svg.attr('height', containerRect.height)
+        }
+      }
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [netlist])
 
   if (!netlist) {
     return (
@@ -197,7 +224,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ netlist, valida
   }
 
   return (
-    <div className="h-full bg-white">
+    <div ref={containerRef} className="h-full bg-white">
       <svg ref={svgRef} className="w-full h-full" />
     </div>
   )
