@@ -197,8 +197,8 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     }
   }
 
-  const oneliner = `docker pull ghcr.io/modularizer/netwiz:latest && docker run --rm --privileged -p 8080:80 ghcr.io/modularizer/netwiz:latest`
-  const getDockerInstructions = () => (
+  const oneliner = `COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) && curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" && trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT && docker-compose -p netwiz -f "$f" up`
+    const getDockerInstructions = () => (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
       <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
         <Download className="w-4 h-4 mr-2" />
