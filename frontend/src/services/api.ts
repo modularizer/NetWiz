@@ -53,7 +53,7 @@ export interface ApiError {
 const DEFAULT_API_URL = '/api'  // Use relative path for nginx proxy
 const API_URL_STORAGE_KEY = 'netwiz-api-url'
 
-const getApiBaseUrl = () => {
+export const getApiBaseUrl = () => {
   // Check for environment variable first (for Docker/production)
   const envApiUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.REACT_APP_API_BASE_URL
   if (envApiUrl) {
@@ -70,7 +70,7 @@ const getApiBaseUrl = () => {
   return DEFAULT_API_URL
 }
 
-let API_BASE_URL = getApiBaseUrl()
+export let API_BASE_URL = getApiBaseUrl()
 const API_TIMEOUT = 30000 // 30 seconds
 
 // Function to update API base URL

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { AlertCircle, CheckCircle, Download, Copy, Check } from 'lucide-react'
 import { NetWizInfo } from '@/components/NetWizInfo'
 import { DEFAULT_API_URL, API_URL_STORAGE_KEY } from '@/services/api'
@@ -20,10 +20,7 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
   const [copied, setCopied] = useState(false)
   const defaultApiUrl = DEFAULT_API_URL
 
-  // Auto-check state
-  const [checkInterval, setCheckInterval] = useState(5000) // Start with 5 seconds
-  const intervalRef = useRef<number | null>(null)
-  const lastUserActionRef = useRef<number>(Date.now())
+  // Removed auto-check state - no longer automatically checking backend
 
   // Load saved API URL from localStorage
   const [customApiUrl, setCustomApiUrl] = useState(() => {
@@ -66,11 +63,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         if (isNetWiz) {
           console.log('BackendChecker: Notifying parent that backend is available')
           onBackendStatusChange(true)
-          // Stop auto-checking when backend is found
-          if (intervalRef.current) {
-            window.clearInterval(intervalRef.current)
-            intervalRef.current = null
-          }
         }
       } else {
         console.log('BackendChecker: Response not OK:', response.status, response.statusText)
@@ -96,51 +88,9 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     }
   }, [defaultApiUrl, customApiUrl, onBackendStatusChange])
 
-  // Reset check interval to fast (5s) after user actions
-  const resetCheckInterval = useCallback(() => {
-    console.log('BackendChecker: Resetting check interval to 5s due to user action')
-    setCheckInterval(5000)
-    lastUserActionRef.current = Date.now()
-  }, [])
+  // Removed resetCheckInterval - no longer auto-checking
 
-  // Auto-checking effect with decaying intervals
-  useEffect(() => {
-    // Only auto-check if backend is not available
-    if (status?.accessible && status?.isNetWiz) {
-      return
-    }
-
-    const startAutoCheck = () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current)
-      }
-
-      intervalRef.current = window.setInterval(() => {
-        checkBackendStatus(undefined, true)
-
-        // Decay the interval: 5s -> 10s -> 20s -> 30s -> 60s (max)
-        setCheckInterval(prev => {
-          const timeSinceLastAction = Date.now() - lastUserActionRef.current
-          if (timeSinceLastAction < 10000) { // Less than 10s since last action
-            return 5000 // Keep at 5s
-          }
-
-          const nextInterval = Math.min(prev * 1.5, 60000) // Cap at 60s
-          console.log(`BackendChecker: Auto-check interval decaying to ${nextInterval}ms`)
-          return nextInterval
-        })
-      }, checkInterval)
-    }
-
-    startAutoCheck()
-
-    return () => {
-      if (intervalRef.current) {
-        window.clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }
-  }, [checkBackendStatus, checkInterval, status])
+  // Removed auto-checking effect - no longer automatically checking backend
 
   // Initial check on mount
   useEffect(() => {
@@ -154,7 +104,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
     // Save to localStorage
     localStorage.setItem(API_URL_STORAGE_KEY, newUrl)
     onApiUrlChange(newUrl)
-    resetCheckInterval() // Reset to fast checking
     checkBackendStatus(newUrl)
   }
 
@@ -165,7 +114,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
         await navigator.clipboard.writeText(text)
         setCopied(true)
         setTimeout(() => setCopied(false), 2000) // Reset after 2 seconds
-        resetCheckInterval() // Reset to fast checking after copying
       } else {
         // Fallback for older browsers or non-HTTPS contexts
         const textArea = document.createElement('textarea')
@@ -182,7 +130,6 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
           if (successful) {
             setCopied(true)
             setTimeout(() => setCopied(false), 2000)
-            resetCheckInterval() // Reset to fast checking after copying
           } else {
             console.warn('Failed to copy text using fallback method')
           }
@@ -317,13 +264,22 @@ export const BackendChecker: React.FC<BackendCheckerProps> = ({ onApiUrlChange, 
                 <div className="flex space-x-2">
                   <input
                     type="text"
-                    value={customApiUrl || defaultApiUrl}
-                    onChange={(e) => setCustomApiUrl(e.target.value)}
+                    defaultValue={customApiUrl || defaultApiUrl}
                     placeholder={defaultApiUrl}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const url = e.currentTarget.value || defaultApiUrl
+                        handleApiUrlChange(url)
+                      }
+                    }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   <button
-                    onClick={() => handleApiUrlChange(customApiUrl || defaultApiUrl)}
+                    onClick={(e) => {
+                      const input = e.currentTarget.previousElementSibling as HTMLInputElement
+                      const url = input.value || defaultApiUrl
+                      handleApiUrlChange(url)
+                    }}
                     className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     Verify
