@@ -12,9 +12,10 @@ import { getCachedUsername, setCachedUsername } from '@/utils/authUtils'
 import { NetWizInfo } from '@/components/NetWizInfo'
 
 export function SignInPage() {
-  const { clearError } = useAuth()
+  const { clearError, error } = useAuth()
   const [mode, setMode] = useState<'signin' | 'signup'>('signup') // Default to signup
   const [isInitialized, setIsInitialized] = useState(false)
+  const [hasAttemptedSignIn, setHasAttemptedSignIn] = useState(false)
 
   // Check for cached username on mount
   useEffect(() => {
@@ -25,13 +26,24 @@ export function SignInPage() {
     setIsInitialized(true)
   }, [])
 
+  // If there's an authentication error and we haven't attempted sign-in yet,
+  // switch to sign-in mode to show the error
+  useEffect(() => {
+    if (error && !hasAttemptedSignIn && mode === 'signup') {
+      setMode('signin')
+      setHasAttemptedSignIn(true)
+    }
+  }, [error, hasAttemptedSignIn, mode])
+
   const switchToSignUp = () => {
     setMode('signup')
+    setHasAttemptedSignIn(false)
     clearError()
   }
 
   const switchToSignIn = () => {
     setMode('signin')
+    setHasAttemptedSignIn(true)
     clearError()
   }
 

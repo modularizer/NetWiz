@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from 'react'
-import { AlertCircle, CheckCircle, AlertTriangle, Info, MapPin, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { AlertCircle, CheckCircle, AlertTriangle, Info, MapPin, HelpCircle } from 'lucide-react'
 import type { ValidationResult, ValidationErrorType } from '@/types/netlist'
 import RulesModal from './RulesModal'
 import RuleDescriptionModal from './RuleDescriptionModal'
@@ -23,7 +23,6 @@ const ValidationPanel: React.FC<ValidationPanelProps> = ({ validationResult, onN
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false)
   const [isRuleDescriptionModalOpen, setIsRuleDescriptionModalOpen] = useState(false)
   const [selectedRule, setSelectedRule] = useState<ValidationErrorType | null>(null)
-  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const handleRuleDescriptionClick = (rule: ValidationErrorType) => {
     setSelectedRule(rule)
