@@ -3,6 +3,8 @@
 
 A proof-of-concept application for visualizing and validating PCB netlist data. This tool allows users to upload netlist files, visualize them as interactive graphs, and validate them against basic electrical rules.
 
+![sample.png](docs/sample.png)
+
 # Architecture
 - Frontend: React using Typescript and vite
 - Backend: Python using FastAPI
