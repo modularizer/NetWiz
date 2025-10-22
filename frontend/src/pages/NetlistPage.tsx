@@ -8,9 +8,9 @@
  * - Interactive schematic visualization
  */
 
-import React, { useState, useCallback, useEffect } from 'react'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import { AlertCircle, CheckCircle, Loader2, Upload } from 'lucide-react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { Panel, PanelGroup, PanelResizeHandle, ImperativePanelHandle } from 'react-resizable-panels'
+import { AlertCircle, CheckCircle, Loader2, Upload, Minus, ChevronUp, Menu } from 'lucide-react'
 import JsonEditor from '@/components/netlist/JsonEditor'
 import GraphVisualization from '@/components/netlist/GraphVisualization'
 import ValidationPanel from '@/components/netlist/ValidationPanel'
@@ -31,6 +31,16 @@ const NetlistPage: React.FC = () => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string>('')
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
   const [isSmallScreen, setIsSmallScreen] = useState(false)
+  const [isValidationCollapsed, setIsValidationCollapsed] = useState(false)
+  const [isSubmissionsCollapsed, setIsSubmissionsCollapsed] = useState(false)
+
+  // Panel refs for programmatic resizing
+  const mobileValidationPanelRef = useRef<ImperativePanelHandle>(null)
+  const mobileSchematicPanelRef = useRef<ImperativePanelHandle>(null)
+  const desktopValidationPanelRef = useRef<ImperativePanelHandle>(null)
+  const desktopSchematicPanelRef = useRef<ImperativePanelHandle>(null)
+  const mobileSubmissionsPanelRef = useRef<ImperativePanelHandle>(null)
+  const desktopSubmissionsPanelRef = useRef<ImperativePanelHandle>(null)
 
   // Custom hooks for API operations
   const { uploadNetlist, isUploading } = useNetlistUpload()
@@ -47,6 +57,62 @@ const NetlistPage: React.FC = () => {
 
     return () => window.removeEventListener('resize', checkScreenSize)
   }, [])
+
+  // Handle validation collapse/expand with panel resizing
+  const handleValidationToggle = useCallback(() => {
+    const newCollapsedState = !isValidationCollapsed
+    setIsValidationCollapsed(newCollapsedState)
+
+    // Resize panels based on current layout - only change height, not width
+    if (isSmallScreen) {
+      // Mobile layout - vertical panels (height only)
+      if (mobileValidationPanelRef.current && mobileSchematicPanelRef.current) {
+        if (newCollapsedState) {
+          mobileValidationPanelRef.current.resize(5)  // Collapse to just header height
+          mobileSchematicPanelRef.current.resize(95)  // Expand to take remaining space
+        } else {
+          mobileValidationPanelRef.current.resize(60) // Expand to normal size
+          mobileSchematicPanelRef.current.resize(40)  // Normal schematic size
+        }
+      }
+    } else {
+      // Desktop layout - only resize validation panel height (not width)
+      if (desktopValidationPanelRef.current) {
+        if (newCollapsedState) {
+          desktopValidationPanelRef.current.resize(5)  // Collapse to just header height
+        } else {
+          desktopValidationPanelRef.current.resize(40) // Expand to normal size
+        }
+      }
+    }
+  }, [isValidationCollapsed, isSmallScreen])
+
+  // Handle submissions collapse/expand with panel resizing
+  const handleSubmissionsToggle = useCallback(() => {
+    const newCollapsedState = !isSubmissionsCollapsed
+    setIsSubmissionsCollapsed(newCollapsedState)
+
+    // Resize panels based on current layout - only change width, not height
+    if (isSmallScreen) {
+      // Mobile layout - vertical panels (width only)
+      if (mobileSubmissionsPanelRef.current) {
+        if (newCollapsedState) {
+          mobileSubmissionsPanelRef.current.resize(3)  // Collapse to minimal width
+        } else {
+          mobileSubmissionsPanelRef.current.resize(20) // Expand to normal size
+        }
+      }
+    } else {
+      // Desktop layout - only resize submissions panel width (not height)
+      if (desktopSubmissionsPanelRef.current) {
+        if (newCollapsedState) {
+          desktopSubmissionsPanelRef.current.resize(3)  // Collapse to minimal width
+        } else {
+          desktopSubmissionsPanelRef.current.resize(15) // Expand to normal size
+        }
+      }
+    }
+  }, [isSubmissionsCollapsed, isSmallScreen])
 
   // Navigation handler for clicking on validation errors
   const handleNavigateToError = useCallback((lineNumber: number, characterPosition: number) => {
@@ -234,13 +300,37 @@ const NetlistPage: React.FC = () => {
           // Mobile/Tablet Layout - Vertical Stack
           <PanelGroup direction="vertical">
             {/* Top Panel - Submissions List */}
-            <Panel defaultSize={20} minSize={15} maxSize={30}>
-              <SubmissionsList
-                onSubmissionSelect={handleSubmissionSelect}
-                selectedSubmissionId={selectedSubmissionId}
-                isAdmin={user?.user_type === 'admin'}
-                refreshTrigger={refreshTrigger}
-              />
+            <Panel ref={mobileSubmissionsPanelRef} defaultSize={20} minSize={3} maxSize={30}>
+              <div className="flex flex-col h-full overflow-hidden">
+                <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    {!isSubmissionsCollapsed && (
+                      <h2 className="text-sm font-medium text-gray-900">Submissions</h2>
+                    )}
+                    <button
+                      onClick={handleSubmissionsToggle}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      title={isSubmissionsCollapsed ? 'Expand submissions' : 'Collapse submissions'}
+                    >
+                      {isSubmissionsCollapsed ? (
+                        <Menu className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <Minus className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                {!isSubmissionsCollapsed && (
+                  <div className="flex-1 min-h-0">
+                    <SubmissionsList
+                      onSubmissionSelect={handleSubmissionSelect}
+                      selectedSubmissionId={selectedSubmissionId}
+                      isAdmin={user?.user_type === 'admin'}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </div>
+                )}
+              </div>
             </Panel>
 
             <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
@@ -335,40 +425,55 @@ const NetlistPage: React.FC = () => {
             <Panel defaultSize={30} minSize={20}>
               <PanelGroup direction="vertical">
                 {/* Validation Panel */}
-                <Panel defaultSize={60} minSize={40}>
+                <Panel ref={mobileValidationPanelRef} defaultSize={60} minSize={5}>
                   <div className="flex flex-col h-full overflow-hidden">
                     <div className="bg-white border-b border-gray-200 px-4 py-2">
-                      <div className="flex items-center space-x-2">
-                        <h2 className="text-sm font-medium text-gray-900">Validation</h2>
-                        {validationResult && (
-                          <div className="flex items-center space-x-1">
-                            {validationResult.is_valid ? (
-                              <CheckCircle className="w-4 h-4 text-success-500" />
-                            ) : (
-                              <AlertCircle className="w-4 h-4 text-error-500" />
-                            )}
-                            <span className={`text-xs font-medium ${
-                              validationResult.is_valid ? 'text-success-600' : 'text-error-600'
-                            }`}>
-                              {validationResult.is_valid ? 'Valid' : 'Invalid'}
-                            </span>
-                          </div>
-                        )}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <h2 className="text-sm font-medium text-gray-900">Validation</h2>
+                          {validationResult && (
+                            <div className="flex items-center space-x-1">
+                              {validationResult.is_valid ? (
+                                <CheckCircle className="w-4 h-4 text-success-500" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-error-500" />
+                              )}
+                              <span className={`text-xs font-medium ${
+                                validationResult.is_valid ? 'text-success-600' : 'text-error-600'
+                              }`}>
+                                {validationResult.is_valid ? 'Valid' : 'Invalid'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={handleValidationToggle}
+                          className="p-1 rounded hover:bg-gray-100 transition-colors"
+                          title={isValidationCollapsed ? 'Expand validation' : 'Collapse validation'}
+                        >
+                          {isValidationCollapsed ? (
+                            <ChevronUp className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <Minus className="w-4 h-4 text-gray-500" />
+                          )}
+                        </button>
                       </div>
                     </div>
-                    <div className="flex-1 min-h-0">
-                      <ValidationPanel
-                        validationResult={validationResult}
-                        onNavigateToError={handleNavigateToError}
-                      />
-                    </div>
+                    {!isValidationCollapsed && (
+                      <div className="flex-1 min-h-0">
+                        <ValidationPanel
+                          validationResult={validationResult}
+                          onNavigateToError={handleNavigateToError}
+                        />
+                      </div>
+                    )}
                   </div>
                 </Panel>
 
                 <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
 
                 {/* Graph Visualization */}
-                <Panel defaultSize={40} minSize={30}>
+                <Panel ref={mobileSchematicPanelRef} defaultSize={40} minSize={30}>
                   <div className="flex flex-col h-full overflow-hidden">
                     <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
                       <h2 className="text-sm font-medium text-gray-900">Schematic</h2>
@@ -385,13 +490,37 @@ const NetlistPage: React.FC = () => {
           // Desktop Layout - Horizontal Columns
           <PanelGroup direction="horizontal">
           {/* Left Panel - Submissions List */}
-          <Panel defaultSize={15} minSize={12}>
-            <SubmissionsList
-              onSubmissionSelect={handleSubmissionSelect}
-              selectedSubmissionId={selectedSubmissionId}
-              isAdmin={user?.user_type === 'admin'}
-              refreshTrigger={refreshTrigger}
-            />
+          <Panel ref={desktopSubmissionsPanelRef} defaultSize={15} minSize={3}>
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  {!isSubmissionsCollapsed && (
+                    <h2 className="text-sm font-medium text-gray-900">Submissions</h2>
+                  )}
+                  <button
+                    onClick={handleSubmissionsToggle}
+                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    title={isSubmissionsCollapsed ? 'Expand submissions' : 'Collapse submissions'}
+                  >
+                    {isSubmissionsCollapsed ? (
+                      <Menu className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <Minus className="w-4 h-4 text-gray-500" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              {!isSubmissionsCollapsed && (
+                <div className="flex-1 min-h-0">
+                  <SubmissionsList
+                    onSubmissionSelect={handleSubmissionSelect}
+                    selectedSubmissionId={selectedSubmissionId}
+                    isAdmin={user?.user_type === 'admin'}
+                    refreshTrigger={refreshTrigger}
+                  />
+                </div>
+              )}
+            </div>
           </Panel>
 
           <PanelResizeHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
@@ -639,33 +768,48 @@ const NetlistPage: React.FC = () => {
               <PanelResizeHandle className="h-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
 
               {/* Validation Panel */}
-              <Panel defaultSize={40} minSize={20}>
+              <Panel ref={desktopValidationPanelRef} defaultSize={40} minSize={5}>
                 <div className="flex flex-col h-full overflow-hidden">
                   <div className="bg-white border-b border-gray-200 px-4 py-2">
-                    <div className="flex items-center space-x-2">
-                      <h2 className="text-sm font-medium text-gray-900">Validation Results</h2>
-                      {validationResult && (
-                        <div className="flex items-center space-x-1">
-                          {validationResult.is_valid ? (
-                            <CheckCircle className="w-4 h-4 text-success-500" />
-                          ) : (
-                            <AlertCircle className="w-4 h-4 text-error-500" />
-                          )}
-                          <span className={`text-xs font-medium ${
-                            validationResult.is_valid ? 'text-success-600' : 'text-error-600'
-                          }`}>
-                            {validationResult.is_valid ? 'Valid' : 'Invalid'}
-                          </span>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <h2 className="text-sm font-medium text-gray-900">Validation Results</h2>
+                        {validationResult && (
+                          <div className="flex items-center space-x-1">
+                            {validationResult.is_valid ? (
+                              <CheckCircle className="w-4 h-4 text-success-500" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4 text-error-500" />
+                            )}
+                            <span className={`text-xs font-medium ${
+                              validationResult.is_valid ? 'text-success-600' : 'text-error-600'
+                            }`}>
+                              {validationResult.is_valid ? 'Valid' : 'Invalid'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={handleValidationToggle}
+                        className="p-1 rounded hover:bg-gray-100 transition-colors"
+                        title={isValidationCollapsed ? 'Expand validation' : 'Collapse validation'}
+                      >
+                        {isValidationCollapsed ? (
+                          <ChevronUp className="w-4 h-4 text-gray-500" />
+                        ) : (
+                          <Minus className="w-4 h-4 text-gray-500" />
+                        )}
+                      </button>
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0">
-                    <ValidationPanel
-                      validationResult={validationResult}
-                      onNavigateToError={handleNavigateToError}
-                    />
-                  </div>
+                  {!isValidationCollapsed && (
+                    <div className="flex-1 min-h-0">
+                      <ValidationPanel
+                        validationResult={validationResult}
+                        onNavigateToError={handleNavigateToError}
+                      />
+                    </div>
+                  )}
                 </div>
               </Panel>
             </PanelGroup>
@@ -674,7 +818,7 @@ const NetlistPage: React.FC = () => {
           <PanelResizeHandle className="w-2 bg-gray-200 hover:bg-gray-300 transition-colors" />
 
           {/* Right Panel - Graph Visualization */}
-          <Panel defaultSize={35} minSize={20} maxSize={50}>
+          <Panel ref={desktopSchematicPanelRef} defaultSize={35} minSize={20} maxSize={70}>
             <div className="flex flex-col h-full overflow-hidden">
               <div className="bg-white border-b border-gray-200 px-4 py-2 flex-shrink-0">
                 <h2 className="text-sm font-medium text-gray-900">Schematic Visualization</h2>
