@@ -10,7 +10,7 @@ services:
     container_name: netwiz-nginx
     restart: unless-stopped
     ports:
-      - "80:80"  # Fixed port mapping inside container
+      - "${PORT:-80}:80"  # Fixed port mapping inside container
     depends_on:
       - backend
       - frontend

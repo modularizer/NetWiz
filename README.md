@@ -32,10 +32,21 @@ Want to run NetWiz without cloning the repository? Just download and run the doc
 2. To run with default settings and secrets, use the following
     ```bash
     COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) &&
-    curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.local.yml -o "$f" &&
+    curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" &&
     trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT &&
     docker-compose -p netwiz -f "$f" up
    ```
+   then access at http://localhost
+3. Optionally, to use extra settings such as `PORT`, `BACKEND_ENV_FILE` or `MONGODB_DATA_PATH` ...
+    ```bash
+   PORT=8080 \
+    MONGODB_DATA_PATH=/home/mod/Code/NetWiz/data \
+    BACKEND_ENV_FILE=/home/mod/Code/NetWiz/backend/.env \
+    COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) &&
+    curl -fsSL https://raw.githubusercontent.com/modularizer/NetWiz/main/docker-compose.prod.yml -o "$f" &&
+    trap 'docker-compose -p netwiz -f "$f" down --rmi all --volumes --remove-orphans; rm -f "$f"' EXIT &&
+    docker-compose -p netwiz -f "$f" up
+    ```
 
 ## Running with Docker
 Okay with cloning? clone the repo and then locally build and run the docker containers using `docker-compose`
