@@ -23,12 +23,14 @@ There are an abundance of ways to run Netwiz. Here are just a few...
 ## Oneliner (No Source Code Required)
 Want to run NetWiz without cloning the repository? Just download and run the docker-compose, which will pull the appropriate docker images from the GitHub Package Registry
 
-1. make sure you have `docker`, `docker-compose` and `curl` installed and your current user has access to run it
+1. make sure you have `docker`, `docker-compose`, and `curl` and your current user has access to run it
     ```bash
-   docker --version
-   docker-compose --version
-   curl --version
+    docker info >/dev/null 2>&1 || { echo "❌ Docker isn't running or installed. Please start Docker or install it first."; exit 1; }; \
+    docker-compose --version >/dev/null 2>&1 || { echo "❌ docker-compose not found. Install it or the Docker Compose plugin."; exit 1; }; \
+    curl --version >/dev/null 2>&1 || { echo "❌ curl isn't installed. Please install curl and try again."; exit 1; }; \
+    echo "✅ All good! Docker, docker-compose, and curl are installed and working."
    ```
+
 2. To run with default settings and secrets, use the following
     ```bash
     COMPOSE_PROJECT_NAME=netwiz f=$(mktemp) &&
