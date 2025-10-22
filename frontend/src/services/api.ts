@@ -75,6 +75,9 @@ const API_TIMEOUT = 30000 // 30 seconds
 
 // Function to update API base URL
 export const updateApiBaseUrl = (newBaseUrl: string) => {
+    if (newBaseUrl.endsWith('/')){
+        newBaseUrl = newBaseUrl.slice(0, newBaseUrl.length - 1)
+    }
   API_BASE_URL = newBaseUrl
   // Recreate the client with new base URL
   apiClient.updateBaseUrl(newBaseUrl)
