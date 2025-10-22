@@ -343,9 +343,6 @@ const NetlistPage: React.FC = () => {
                   <div className="hidden lg:flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
-                      {currentFilename && (
-                        <span className="text-xs text-gray-500">({currentFilename})</span>
-                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <input
@@ -377,9 +374,6 @@ const NetlistPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
-                        {currentFilename && (
-                          <span className="text-xs text-gray-500">({currentFilename})</span>
-                        )}
                       </div>
                     </div>
 
@@ -536,9 +530,6 @@ const NetlistPage: React.FC = () => {
                     <div className="hidden xl:flex items-center justify-between">
                       <div className="flex items-center space-x-4">
                         <h2 className="text-sm font-medium text-gray-900">Netlist JSON</h2>
-                        {currentFilename && (
-                          <span className="text-xs text-gray-500">({currentFilename})</span>
-                        )}
                       </div>
                       <div className="flex items-center space-x-2">
                         {/* Netlist Name Input */}
